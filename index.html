@@ -58,7 +58,8 @@
           },
           "properties": {
             "title": obs["comName"] + ((parseInt(obs["howMany"]) > 1) ? " (" + obs["howMany"] + ")" : ""),
-            "description" : "Observed at " + obs["locName"] + " on " + obs["obsDt"] + " (" + time_ago + ")"
+            "description" : "Observed at " + obs["locName"] + " on " + obs["obsDt"] + " (" + time_ago + ")",
+            "icon" : time_ago_hours < 12 ? "circle-11" : "circle-stroked-11"
           }
         })
       }
@@ -73,7 +74,7 @@
         "source": "ebird-sightings",
         "layout": {
           "icon-allow-overlap": true,
-          "icon-image": "circle-11",
+          "icon-image": "{icon}",
           "text-field": "{title}",
           "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
           "text-offset": [0, 0.6],
