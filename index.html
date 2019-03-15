@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8' />
+  <title>Draw GeoJSON points</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <style>
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
+    .floating-sync-button{
+      position:fixed;
+      width:40px;
+      height:40px;
+      bottom:40px;
+      right:40px;
+      color:#FFF;
+      border-radius:50px;
+      text-align:center;
+    }
+    .floating-sync-button-loading{ background-color:#AAA; }
+    .floating-sync-button-loaded{ background-color:#228B22; box-shadow:2px 2px 3px #999; }
+    .floating-sync-button-text{ margin-top:12px; }
+  </style>
+</head>
+<body>
+ 
+  <div id='map'></div>
+  <a href="#" class="floating-sync-button floating-sync-button-loading fa-spin" id="refresh">
+    <span class="fa fa-sync floating-sync-button-text"></span>
+  </a>
+  <script>
+    mapboxgl.accessToken = '***REMOVED***';
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v9',
+      center: [-93.4015628, 44.9706114],
+      zoom: 8
+    });
+  
+    function update_map(data_points) {
+      console.log("Populating map with " + data_points.length + " points")
+      features = []
+      var current_time_us = (new Date()).getTime()
+      for (var i = 0; i < data_points.length; i++){
+        var obs = data_points[i];
+        var time_ago_us = current_time_us - Date.parse(obs["obsDt"])
+        var time_ago_hours = time_ago_us / 3600000
+        var time_ago_days = time_ago_hours / 24
+        var time_ago = time_ago_hours < 24 ? Math.round(time_ago_hours) + " hours ago" : Math.round(time_ago_days) + " days ago"
+        features.push({
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [obs["lng"], obs["lat"]]
+          },
+          "properties": {
+            "title": obs["comName"] + ((parseInt(obs["howMany"]) > 1) ? " (" + obs["howMany"] + ")" : ""),
+            "description" : "Observed at " + obs["locName"] + " on " + obs["obsDt"] + " (" + time_ago + ")"
+          }
+        })
+      }
+      map.getSource('ebird-sightings').setData({"type": "FeatureCollection", "features": features});
+    }
+
+    function initialize_map() {
+      map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}})
+      map.addLayer({
+        "id": "points",
+        "type": "symbol",
+        "source": "ebird-sightings",
+        "layout": {
+          "icon-allow-overlap": true,
+          "icon-image": "circle-11",
+          "text-field": "{title}",
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-offset": [0, 0.6],
+          "text-anchor": "top"
+        }
+      });
+        
+      map.on('click', 'points', function (e) {
+        var coordinates = e.features[0].geometry.coordinates.slice();
+        var description = e.features[0].properties.description;
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        new mapboxgl.Popup().setLngLat(coordinates).setHTML(description).addTo(map);
+      });
+    }
+
+    var refresh_button = document.getElementById("refresh");  
+    function load_ebird_data() {
+      var request = new XMLHttpRequest(); 
+      request.addEventListener("load", function() { 
+        update_map(JSON.parse(request.responseText))
+        refresh_button.classList.remove('floating-sync-button-loading');
+        refresh_button.classList.add('floating-sync-button-loaded');
+        refresh_button.classList.remove('fa-spin');
+      });
+      refresh_button.classList.remove('floating-sync-button-loaded');
+      refresh_button.classList.add('floating-sync-button-loading');
+      refresh_button.classList.add('fa-spin');
+      
+      
+      lnglat = map.getCenter()
+      request.open("GET", "https://ebird.org/ws2.0/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en");
+      request.setRequestHeader("X-eBirdApiToken", "***REMOVED***")
+      request.send();
+    }
+  
+    map.on('load', function() {
+      initialize_map()
+      load_ebird_data()
+      refresh_button.onclick = load_ebird_data;
+    });
+    
+  </script>
+ 
+</body>
+</html>
