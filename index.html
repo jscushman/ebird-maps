@@ -27,10 +27,19 @@
       overflow-y: scroll;
       max-height: 400px;
     }
+    .filter-ctrl {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
- 
+  <div class='filter-ctrl'>
+    <input id='filter-input' type="range" min="1" max="14" value="7" class="slider">
+    <span id='days-to-search'></span>
+  </div>
   <div id='map'></div>
   <a href="#" class="floating-sync-button floating-sync-button-loading fa-spin" id="refresh">
     <span class="fa fa-sync floating-sync-button-text"></span>
@@ -46,6 +55,9 @@
     function process_position(position) {
       create_map(position.coords.longitude, position.coords.latitude)
     }
+
+    var filter_input = document.getElementById('filter-input');
+    var days_to_search_display = document.getElementById('days-to-search')
 
     function create_map(lon, lat) {
       map = new mapboxgl.Map({
@@ -77,13 +89,17 @@
       return time_ago
     }
 
-    function update_map(data_points) {
-      console.log("Populating map with " + data_points.length + " points")
+    last_data_points = []
+    function save_data_points(data_points) {
+      last_data_points = data_points
+    }
+
+    function update_map() {
+      console.log("Populating map with " + last_data_points.length + " points")
       var features = []
-      var features_recent = []
       var current_time_us = (new Date()).getTime()
       var location_sightings = {}
-      for (obs of data_points){
+      for (obs of last_data_points) {
         var loc = obs["locId"]
         if (!(loc in location_sightings)) {
           location_sightings[loc] = [obs]
@@ -95,6 +111,10 @@
         var sightings = location_sightings[loc]
         var smallest_time_ago_us = Number.MAX_SAFE_INTEGER
         sightings.sort((a, b) => (Date.parse(a["obsDt"]) < Date.parse(b["obsDt"])) ? 1 : -1)
+        sightings = sightings.filter(a => (current_time_us - Date.parse(a["obsDt"]) <= filter_input.value * 24 * 3600000))
+        if (sightings.length == 0) {
+          continue;
+        }
         var time_ago_us = current_time_us - Date.parse(sightings[0]["obsDt"])
         var time_ago_hours = time_ago_us / 3600000
         var time_ago_days = time_ago_hours / 24
@@ -128,17 +148,12 @@
           }
         }
         features.push(new_feature)
-        if (time_ago_hours < 72) {
-          features_recent.push(new_feature)
-        }
       }
       map.getSource('ebird-sightings').setData({"type": "FeatureCollection", "features": features});
-      map.getSource('ebird-sightings-new').setData({"type": "FeatureCollection", "features": features_recent});
     }
 
     function initialize_map() {
       map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}})
-      map.addSource("ebird-sightings-new", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}})
       map.addLayer({
         "id": "points",
         "type": "circle",
@@ -165,7 +180,7 @@
       map.addLayer({
         "id": "points-labels",
         "type": "symbol",
-        "source": "ebird-sightings-new",
+        "source": "ebird-sightings",
         "layout": {
           "icon-allow-overlap": true,
           "icon-image": "circle-stroked-11",
@@ -190,11 +205,20 @@
       });
     }
 
+    filter_input.oninput = function() {
+      days_to_search_display.innerHTML = filter_input.value + " days";
+    }
+    filter_input.onmouseup = function() {
+      update_map()
+    }
+    days_to_search_display.innerHTML = filter_input.value + " days";
+
     var refresh_button = document.getElementById("refresh");  
     function load_ebird_data() {
       var request = new XMLHttpRequest(); 
       request.addEventListener("load", function() { 
-        update_map(JSON.parse(request.responseText))
+        save_data_points(JSON.parse(request.responseText))
+        update_map()
         refresh_button.classList.remove('floating-sync-button-loading');
         refresh_button.classList.add('floating-sync-button-loaded');
         refresh_button.classList.remove('fa-spin');
@@ -204,7 +228,7 @@
       refresh_button.classList.add('fa-spin');
       
       lnglat = map.getCenter()
-      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full");
+      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=14");
       request.setRequestHeader("X-eBirdApiToken", "***REMOVED***")
       request.send();
     }
