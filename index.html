@@ -23,6 +23,10 @@
     .floating-sync-button-loading{ background-color:#AAA; }
     .floating-sync-button-loaded{ background-color:#228B22; box-shadow:2px 2px 3px #999; }
     .floating-sync-button-text{ margin-top:12px; }
+    .mapboxgl-popup-content {
+      overflow-y: scroll;
+      max-height: 400px;
+    }
   </style>
 </head>
 <body>
@@ -33,24 +37,67 @@
   </a>
   <script>
     mapboxgl.accessToken = '***REMOVED***';
-    var map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/light-v9',
-      center: [-70.985, 42.408],
-      zoom: 8
-    });
-  
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(process_position);
+    } else {
+      create_map(0, 0)
+    }
+
+    function process_position(position) {
+      create_map(position.coords.longitude, position.coords.latitude)
+    }
+
+    function create_map(lon, lat) {
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/light-v9',
+        center: [lon, lat],
+        zoom: 8
+      });
+      map.on('load', function() {
+        initialize_map()
+        load_ebird_data()
+        refresh_button.onclick = load_ebird_data;
+      });
+    }
+
+    function time_ago_string(datetime_string) {
+      var current_time_us = (new Date()).getTime()
+      var time_ago_us = current_time_us - Date.parse(datetime_string)
+      var time_ago_hours = time_ago_us / 3600000
+      var time_ago_days = time_ago_hours / 24
+      var time_ago = ""
+      if (time_ago_hours < 24) {
+        var hours_ago = Math.round(time_ago_hours)
+        time_ago = (hours_ago == 1) ? "1 hour ago" : (hours_ago + " hours ago")
+      } else {
+        var days_ago = Math.round(time_ago_days)
+        time_ago = (days_ago == 1) ? "yesterday" : days_ago + " days ago"
+      }
+      return time_ago
+    }
+
     function update_map(data_points) {
       console.log("Populating map with " + data_points.length + " points")
-      features = []
-      features_recent = []
+      var features = []
+      var features_recent = []
       var current_time_us = (new Date()).getTime()
-      for (var i = 0; i < data_points.length; i++){
-        var obs = data_points[i];
-        var time_ago_us = current_time_us - Date.parse(obs["obsDt"])
+      var location_sightings = {}
+      for (obs of data_points){
+        var loc = obs["locId"]
+        if (!(loc in location_sightings)) {
+          location_sightings[loc] = [obs]
+        } else {
+          location_sightings[loc].push(obs)
+        }
+      }
+      for (loc in location_sightings){
+        var sightings = location_sightings[loc]
+        var smallest_time_ago_us = Number.MAX_SAFE_INTEGER
+        sightings.sort((a, b) => (Date.parse(a["obsDt"]) < Date.parse(b["obsDt"])) ? 1 : -1)
+        var time_ago_us = current_time_us - Date.parse(sightings[0]["obsDt"])
         var time_ago_hours = time_ago_us / 3600000
         var time_ago_days = time_ago_hours / 24
-        var time_ago = time_ago_hours < 24 ? Math.round(time_ago_hours) + " hours ago" : Math.round(time_ago_days) + " days ago"
         var time_ago_category = 0
         if (time_ago_days < 1) {
           time_ago_category = "today"
@@ -59,6 +106,14 @@
         } else {
           time_ago_category = "old"
         }
+        var title = "Multiple"
+        if ((sightings.every((val, i, arr) => val["comName"] === arr[0]["comName"]))) {
+          title = sightings[0]["comName"]
+        }
+        var description = "<h2>" + sightings[0]["locName"] + "</h2>"
+        for (obs of sightings) {
+          description = description + "<b><a href=\"https://ebird.org/species/" + obs["speciesCode"] + "\" target=\"_blank\">" + obs["comName"] + "</a>" + (obs["howMany"] > 1 ? (" (" + obs["howMany"] + ")") : "") + "</b> observed <b>" + time_ago_string(obs["obsDt"]) + "</b> (<a href=\"https://ebird.org/view/checklist/" + obs["subId"] + "\" target=\"_blank\">" + obs["obsDt"] + "</a>) by " + obs["userDisplayName"] + (obs["obsReviewed"] ? "" : " (UNCONFIRMED)") + (obs["hasRichMedia"] ? " (with photo)" : "") + "<br>"
+        }
         new_feature = {
           "type": "Feature",
           "geometry": {
@@ -66,14 +121,14 @@
             "coordinates": [obs["lng"], obs["lat"]]
           },
           "properties": {
-            "title": obs["comName"] + ((parseInt(obs["howMany"]) > 1) ? " (" + obs["howMany"] + ")" : ""),
-            "description" : obs["comName"] + " observed at " + obs["locName"] + " on " + obs["obsDt"] + " (" + time_ago + ")",
+            "title": title,
+            "description" : description,
             "time_ago_category" : time_ago_category,
             "hours_old" : time_ago_hours
           }
         }
         features.push(new_feature)
-        if (time_ago_hours < 48) {
+        if (time_ago_hours < 72) {
           features_recent.push(new_feature)
         }
       }
@@ -148,18 +203,11 @@
       refresh_button.classList.add('floating-sync-button-loading');
       refresh_button.classList.add('fa-spin');
       
-      
       lnglat = map.getCenter()
-      request.open("GET", "https://ebird.org/ws2.0/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en");
+      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full");
       request.setRequestHeader("X-eBirdApiToken", "***REMOVED***")
       request.send();
     }
-  
-    map.on('load', function() {
-      initialize_map()
-      load_ebird_data()
-      refresh_button.onclick = load_ebird_data;
-    });
     
   </script>
  
