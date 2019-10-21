@@ -2,9 +2,10 @@
 <html>
 <head>
   <meta charset='utf-8' />
-  <title>Draw GeoJSON points</title>
+  <title>Recent notable bird sightings</title>
   <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
   <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
   <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
   <style>
@@ -37,142 +38,149 @@
 </head>
 <body>
   <div class='filter-ctrl'>
-    <input id='filter-input' type="range" min="1" max="14" value="7" class="slider">
-    <span id='days-to-search'></span>
+    <input id='filter-days' type="range" min="1" max="7" value="7" class="slider">
+    <span id='days-to-search'></span><br/>
+    <input id='font-size-input' type="range" min="4" max="16" value="12" class="slider">
+    <span id='font-size-display'></span>
   </div>
   <div id='map'></div>
   <a href="#" class="floating-sync-button floating-sync-button-loading fa-spin" id="refresh">
     <span class="fa fa-sync floating-sync-button-text"></span>
   </a>
   <script>
-    mapboxgl.accessToken = '***REMOVED***';
+    mapboxgl.accessToken = "***REMOVED***";
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(process_position);
     } else {
-      create_map(0, 0)
+      create_map(0, 0);
     }
 
     function process_position(position) {
-      create_map(position.coords.longitude, position.coords.latitude)
+      create_map(position.coords.longitude, position.coords.latitude);
     }
 
-    var filter_input = document.getElementById('filter-input');
-    var days_to_search_display = document.getElementById('days-to-search')
+    var filter_days = document.getElementById("filter-days");
+    var days_to_search_display = document.getElementById("days-to-search");
+    var font_size_input = document.getElementById("font-size-input");
+    var font_size_display = document.getElementById("font-size-display");
 
     function create_map(lon, lat) {
       map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/light-v9',
+        container: "map",
+        style: "mapbox://styles/mapbox/light-v9",
         center: [lon, lat],
         zoom: 8
       });
-      map.on('load', function() {
-        initialize_map()
-        load_ebird_data()
+      map.on("load", function() {
+        initialize_map();
+        load_ebird_data();
         refresh_button.onclick = load_ebird_data;
       });
     }
 
     function time_ago_string(datetime_string) {
-      var current_time_us = (new Date()).getTime()
-      var time_ago_us = current_time_us - Date.parse(datetime_string)
-      var time_ago_hours = time_ago_us / 3600000
-      var time_ago_days = time_ago_hours / 24
-      var time_ago = ""
+      var current_time_us = (new Date()).getTime();
+      var time_ago_us = current_time_us - Date.parse(datetime_string);
+      var time_ago_hours = time_ago_us / 3600000;
+      var time_ago_days = time_ago_hours / 24;
+      var time_ago = "";
       if (time_ago_hours < 24) {
-        var hours_ago = Math.round(time_ago_hours)
-        time_ago = (hours_ago == 1) ? "1 hour ago" : (hours_ago + " hours ago")
+        var hours_ago = Math.round(time_ago_hours);
+        time_ago = ((hours_ago == 1) ? ("1 hour ago") : (hours_ago + " hours ago"));
       } else {
-        var days_ago = Math.round(time_ago_days)
-        time_ago = (days_ago == 1) ? "yesterday" : days_ago + " days ago"
+        var days_ago = Math.round(time_ago_days);
+        time_ago = (days_ago == 1) ? "yesterday" : days_ago + " days ago";
       }
-      return time_ago
+      return time_ago;
     }
 
-    last_data_points = []
+    last_data_points = [];
     function save_data_points(data_points) {
-      last_data_points = data_points
+      last_data_points = data_points;
     }
 
     function update_map() {
-      console.log("Populating map with " + last_data_points.length + " points")
-      var features = []
-      var current_time_us = (new Date()).getTime()
-      var location_sightings = {}
-      for (obs of last_data_points) {
-        var loc = obs["locId"]
-        if (!(loc in location_sightings)) {
-          location_sightings[loc] = [obs]
+      console.log("Populating map with " + last_data_points.length + " points");
+      var features = [];
+      var now = moment();
+      var location_sightings = new Map();
+      last_data_points.forEach(function (obs, index) {
+        var loc = obs.locId;
+        if (!(location_sightings.has(loc))) {
+          location_sightings.set(loc, [obs]);
         } else {
-          location_sightings[loc].push(obs)
+          location_sightings.get(loc).push(obs);
         }
-      }
-      for (loc in location_sightings){
-        var sightings = location_sightings[loc]
-        var smallest_time_ago_us = Number.MAX_SAFE_INTEGER
-        sightings.sort((a, b) => (Date.parse(a["obsDt"]) < Date.parse(b["obsDt"])) ? 1 : -1)
-        sightings = sightings.filter(a => (current_time_us - Date.parse(a["obsDt"]) <= filter_input.value * 24 * 3600000))
-        if (sightings.length == 0) {
-          continue;
-        }
-        var time_ago_us = current_time_us - Date.parse(sightings[0]["obsDt"])
-        var time_ago_hours = time_ago_us / 3600000
-        var time_ago_days = time_ago_hours / 24
-        var time_ago_category = 0
-        if (time_ago_days < 1) {
-          time_ago_category = "today"
-        } else if (time_ago_days < 2) {
-          time_ago_category = "yesterday"
-        } else {
-          time_ago_category = "old"
-        }
-        var title = "Multiple"
-        if ((sightings.every((val, i, arr) => val["comName"] === arr[0]["comName"]))) {
-          title = sightings[0]["comName"]
-        }
-        var description = "<h2>" + sightings[0]["locName"] + "</h2>"
-        for (obs of sightings) {
-          description = description + "<b><a href=\"https://ebird.org/species/" + obs["speciesCode"] + "\" target=\"_blank\">" + obs["comName"] + "</a>" + (obs["howMany"] > 1 ? (" (" + obs["howMany"] + ")") : "") + "</b> observed <b>" + time_ago_string(obs["obsDt"]) + "</b> (<a href=\"https://ebird.org/view/checklist/" + obs["subId"] + "\" target=\"_blank\">" + obs["obsDt"] + "</a>) by " + obs["userDisplayName"] + (obs["obsReviewed"] ? "" : " (UNCONFIRMED)") + (obs["hasRichMedia"] ? " (with photo)" : "") + "<br>"
-        }
-        new_feature = {
-          "type": "Feature",
-          "geometry": {
-            "type": "Point",
-            "coordinates": [obs["lng"], obs["lat"]]
-          },
-          "properties": {
-            "title": title,
-            "description" : description,
-            "time_ago_category" : time_ago_category,
-            "hours_old" : time_ago_hours
+      });
+      location_sightings.forEach(function (sightings, loc, map) {
+        var smallest_time_ago_us = Number.MAX_SAFE_INTEGER;
+        var date = moment(sightings[0], "YYYY-MM-DD HH:mm");
+        sightings.sort((a, b) => moment(a.obsDt, "YYYY-MM-DD HH:mm").isBefore(moment(b.obsDt, "YYYY-MM-DD HH:mm")));
+        sightings = sightings.filter(a => now.diff(moment(a.obsDt, "YYYY-MM-DD HH:mm"), 'days') <= filter_days.value);
+        if (sightings.length > 0) {
+          var time_ago_days = now.diff(moment(sightings[0].obsDt, "YYYY-MM-DD HH:mm"), 'days');
+          var time_ago_category = 0;
+          if (time_ago_days < 1) {
+            time_ago_category = "today";
+          } else if (time_ago_days < 2) {
+            time_ago_category = "yesterday";
+          } else {
+            time_ago_category = "old";
           }
+          //if ((sightings.every((val, i, arr) => val.comName === arr[0].comName))) {
+          //  title = sightings[0].comName;
+          //}
+          var description = "<h2>" + sightings[0].locName + "</h2>";
+          var species_seen = new Set();
+          sightings = sightings.filter((obs, index, self) =>
+            index === self.findIndex((o) => (
+              o.obsId === obs.obsId && o.speciesCode === obs.speciesCode
+            ))
+          )
+          sightings.forEach(function (obs, index) {
+            description = description + "<b><a href=\"https://ebird.org/species/" + obs.speciesCode + "\" target=\"_blank\">" + obs.comName + "</a>" + (obs.howMany > 1 ? (" (" + obs.howMany + ")") : "") + "</b> observed <b>" + moment(obs.obsDt, "YYYY-MM-DD HH:mm").fromNow() + "</b> (<a href=\"https://ebird.org/view/checklist/" + obs.subId + "\" target=\"_blank\">" + obs.obsDt + "</a>) by " + obs.userDisplayName + (obs.obsReviewed ? "" : " (UNCONFIRMED)") + (obs.hasRichMedia ? " (with photo)" : "") + "<br>";
+            species_seen.add(obs.comName);
+          });
+          var title = [...species_seen].join(",\n");
+          new_feature = {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [sightings[0].lng, sightings[0].lat]
+            },
+            "properties": {
+              "title": title,
+              "description" : description,
+              "time_ago_category" : time_ago_category
+            }
+          };
+          features.push(new_feature);
         }
-        features.push(new_feature)
-      }
-      map.getSource('ebird-sightings').setData({"type": "FeatureCollection", "features": features});
+      });
+      map.getSource("ebird-sightings").setData({"type": "FeatureCollection", "features": features});
     }
 
     function initialize_map() {
-      map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}})
+      map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}});
       map.addLayer({
         "id": "points",
         "type": "circle",
         "source": "ebird-sightings",
-        'paint': {
-          'circle-opacity' : {
-            'base': 0.0,
-            'stops': [[8, 0.0], [12, 0.5], [13, 1.0]]
+        "paint": {
+          "circle-opacity" : {
+            "base": 0.0,
+            "stops": [[8, 0.5], [12, 0.5], [13, 1.0]]
           },
-          'circle-radius': {
-            'base': 2,
-            'stops': [[8, 2], [11, 6], [22, 180]]
+          "circle-radius": {
+            "base": 2,
+            "stops": [[8, 2], [11, 6], [22, 180]]
           },
-          'circle-color': [
-            'match',
-            ['get', 'time_ago_category'],
-            'today', 'green',
-            'yesterday', 'orange',
-            'old', 'red', 'black'
+          "circle-color": [
+            "match",
+            ["get", "time_ago_category"],
+            "today", "green",
+            "yesterday", "orange",
+            "old", "red", "black"
           ]
         }
       });
@@ -187,6 +195,7 @@
           "text-field": "{title}",
           "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
           "text-offset": [0, 0.6],
+          "text-size": Number(font_size_input.value),
           "text-anchor": "top",
         },
         "paint": {
@@ -195,7 +204,7 @@
       });
 
 
-      map.on('click', 'points', function (e) {
+      map.on("click", "points", function (e) {
         var coordinates = e.features[0].geometry.coordinates.slice();
         var description = e.features[0].properties.description;
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
@@ -205,34 +214,38 @@
       });
     }
 
-    filter_input.oninput = function() {
-      days_to_search_display.innerHTML = filter_input.value + " days";
-    }
-    filter_input.onmouseup = function() {
-      update_map()
-    }
-    days_to_search_display.innerHTML = filter_input.value + " days";
+    filter_days.oninput = function() {
+      days_to_search_display.innerHTML = filter_days.value + " days";
+    };
+    filter_days.onmouseup = function() {
+      update_map();
+    };
+    font_size_input.oninput = function() {
+      font_size_display.innerHTML = font_size_input.value + " pt font";
+      map.setLayoutProperty('points-labels', 'text-size', Number(font_size_input.value));
+    };
+    days_to_search_display.innerHTML = filter_days.value + " days";
+    font_size_display.innerHTML = font_size_input.value + " pt font";
 
     var refresh_button = document.getElementById("refresh");  
     function load_ebird_data() {
       var request = new XMLHttpRequest(); 
       request.addEventListener("load", function() { 
-        save_data_points(JSON.parse(request.responseText))
-        update_map()
-        refresh_button.classList.remove('floating-sync-button-loading');
-        refresh_button.classList.add('floating-sync-button-loaded');
-        refresh_button.classList.remove('fa-spin');
+        save_data_points(JSON.parse(request.responseText));
+        update_map();
+        refresh_button.classList.remove("floating-sync-button-loading");
+        refresh_button.classList.add("floating-sync-button-loaded");
+        refresh_button.classList.remove("fa-spin");
       });
-      refresh_button.classList.remove('floating-sync-button-loaded');
-      refresh_button.classList.add('floating-sync-button-loading');
-      refresh_button.classList.add('fa-spin');
+      refresh_button.classList.remove("floating-sync-button-loaded");
+      refresh_button.classList.add("floating-sync-button-loading");
+      refresh_button.classList.add("fa-spin");
       
-      lnglat = map.getCenter()
-      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=14");
-      request.setRequestHeader("X-eBirdApiToken", "***REMOVED***")
+      var lnglat = map.getCenter();
+      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=7&dist=100");
+      request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
       request.send();
     }
-    
   </script>
  
 </body>
