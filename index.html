@@ -50,6 +50,7 @@
   </a>
   <script>
     mapboxgl.accessToken = "***REMOVED***";
+    var distance_radius = 100
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(process_position);
     } else {
@@ -142,6 +143,19 @@
       map.getSource("ebird-sightings").setData({"type": "FeatureCollection", "features": features});
     }
 
+    function update_radius_circle(lnglat) {
+      var lng_rad = lnglat.lng * Math.PI / 180
+      var lat_rad = lnglat.lat * Math.PI / 180
+      radius_points = []
+      for (i = 0; i <= 100; i++) {
+        angle = 2 * Math.PI * i / 100;
+        newlat = Math.asin(Math.sin(lat_rad) * Math.cos(distance_radius / 6356.) + Math.cos(lat_rad) * Math.sin(distance_radius / 6356.) * Math.cos(angle))
+        newlon = lng_rad + Math.atan2(Math.sin(angle) * Math.sin(distance_radius / 6356.) * Math.cos(lat_rad), Math.cos(distance_radius / 6356.) - Math.sin(lat_rad) * Math.sin(newlat))
+        radius_points.push([newlon * 180 / (Math.PI), newlat * 180 / (Math.PI)])
+      }
+      map.getSource("search-radius-points").setData({"type": "Feature", "geometry": {"type": "Polygon", "coordinates" : [radius_points]}});
+    }
+
     function initialize_map() {
       map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}});
       map.addLayer({
@@ -185,6 +199,24 @@
         }
       });
 
+      map.addSource("search-radius-points", {
+          'type': 'geojson',
+          'data': {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Polygon',
+              'coordinates': [[]]
+            }
+          }
+        });
+      map.addLayer({
+        'id': 'search-radius',
+        'type': 'line',
+        'source': "search-radius-points",
+        "paint": {
+          "line-opacity" : 0.2
+        }
+      });
 
       map.on("click", "points", function (e) {
         var coordinates = e.features[0].geometry.coordinates.slice();
@@ -216,19 +248,19 @@
     var refresh_button = document.getElementById("refresh");  
     function load_ebird_data() {
       var request = new XMLHttpRequest(); 
+      var lnglat = map.getCenter();
       request.addEventListener("load", function() { 
         save_data_points(JSON.parse(request.responseText));
         update_map();
         refresh_button.classList.remove("floating-sync-button-loading");
         refresh_button.classList.add("floating-sync-button-loaded");
         refresh_button.classList.remove("fa-spin");
+        update_radius_circle(lnglat);
       });
       refresh_button.classList.remove("floating-sync-button-loaded");
       refresh_button.classList.add("floating-sync-button-loading");
       refresh_button.classList.add("fa-spin");
-      
-      var lnglat = map.getCenter();
-      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=7&dist=100");
+      request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=7&dist=" + distance_radius);
       request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
       request.send();
     }
