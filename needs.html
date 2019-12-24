@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Species needs</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="ebird_map.js"></script>
+  <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <style>
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
+    .floating-sync-button{
+      position:fixed;
+      width:40px;
+      height:40px;
+      bottom:40px;
+      right:40px;
+      color:#FFF;
+      border-radius:50px;
+      text-align:center;
+    }
+    .floating-sync-button-loading{ background-color:#AAA; }
+    .floating-sync-button-loaded{ background-color:#228B22; box-shadow:2px 2px 3px #999; }
+    .floating-sync-button-text{ margin-top:12px; }
+    .mapboxgl-popup-content {
+      overflow-y: scroll;
+      max-height: 400px;
+    }
+    .filter-ctrl {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+      width: 250px;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="filter-ctrl">
+      <input id="country" type="text">
+      <input id="state" type="text">
+      <input id="county" type="text">
+    </div>
+    <div id="map"></div>
+    <a href="#" class="floating-sync-button floating-sync-button-loading fa-spin" id="refresh">
+      <span class="fa fa-sync floating-sync-button-text"></span>
+    </a>
+    <script>
+      // UI elements
+      var filter_days = document.getElementById("filter-days");
+      var days_to_search_display = document.getElementById("days-to-search");
+
+      // Distance radius for finding observations
+      var distance_radius = 100;
+
+      // Get the current location and initialize map
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => set_up_map(position.coords.longitude, position.coords.latitude));
+      } else {
+        set_up_map(0, 0);
+      }
+      function set_up_map(lon, lat) {
+        jump_map(lon, lat);
+        load_ebird_data();
+      }
+      
+      var countries;
+      // Get eBird country codes.
+      function load_ebird_data() {
+        let request = new XMLHttpRequest();
+        request.addEventListener("load", function() {
+          countries = JSON.parse(request.responseText);
+          countries.forEach(function (country_data, index) {
+            console.log(country_data);
+          });
+          $("#countries").autocomplete({
+            source: countries
+          });
+        });
+        request.open("GET", "list_countries.php");
+        request.send();
+      }
+
+    </script>
+  </body>
+</html>
