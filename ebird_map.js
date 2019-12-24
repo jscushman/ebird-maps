@@ -63,9 +63,6 @@ document.addEventListener('DOMContentLoaded', function() {
       new mapboxgl.Popup().setLngLat(coordinates).setHTML(description).addTo(map);
     });
   });
-
-  // Load new eBird data when the refresh button is clicked.
-  document.getElementById("refresh").onclick = load_ebird_data;
 }, false);
 
 function jump_map(lon, lat) {
@@ -88,8 +85,12 @@ function set_source_data(name, data) {
   map.getSource(name).setData(data);
 }
 
-// Plot data points on map.
 var current_data_points = [];
+function set_data_points(data_points) {
+  current_data_points = data_points;
+}
+
+// Plot data points on map.
 function update_map() {
   console.log("Populating map with " + current_data_points.length + " points");
   let features = [];
@@ -111,7 +112,7 @@ function update_map() {
   location_sightings.forEach(function (sightings, loc, map) {
     // Sort sightings by date, and filter sightings that are too old.
     sightings.sort((a, b) => a.moment.isBefore(b.moment));
-    sightings = sightings.filter(a => now.startOf("day").diff(a.moment.startOf("day"), "days") <= filter_days.value);
+    sightings = sightings.filter(a => now.startOf("day").diff(a.moment.startOf("day"), "days") <= document.getElementById("filter-days").value);
 
     // If there are sightings for this location that were not filtered out, build up the display message.
     if (sightings.length > 0) {
@@ -131,7 +132,16 @@ function update_map() {
       sightings = sightings.filter((obs, index, self) => (index === self.findIndex((o) => (
         o.obsId === obs.obsId && o.speciesCode === obs.speciesCode))));
       sightings.forEach(function (obs, index) {
-        description = description + "<b><a href=\"https://ebird.org/species/" + obs.speciesCode + "\" target=\"_blank\">" + obs.comName + "</a>" + (obs.howMany > 1 ? (" (" + obs.howMany + ")") : "") + "</b> observed <b>" + obs.moment.fromNow() + "</b> (<a href=\"https://ebird.org/view/checklist/" + obs.subId + "\" target=\"_blank\">" + obs.obsDt + "</a>) by " + obs.userDisplayName + (obs.obsReviewed ? "" : " (UNCONFIRMED)") + (obs.hasRichMedia ? " (with photo)" : "") + "<br>";
+        description = description + "<b><a href=\"https://ebird.org/species/" + obs.speciesCode + "\" target=\"_blank\">" + obs.comName + "</a>" + (obs.howMany > 1 ? (" (" + obs.howMany + ")") : "") + "</b> observed <b>" + obs.moment.fromNow() + "</b> ";
+        if (obs.hasOwnProperty("subId")) {
+          description = description + "(<a href=\"https://ebird.org/view/checklist/" + obs.subId + "\" target=\"_blank\">" + obs.obsDt + "</a>) ";
+        } else {
+          description = description + "(" + obs.obsDt + ") ";
+        }
+        if (obs.hasOwnProperty("userDisplayName")) {
+          description = description + "by " + obs.userDisplayName + (obs.obsReviewed ? "" : " (UNCONFIRMED)") + (obs.hasRichMedia ? " (with photo)" : "");
+        }
+        description = description + "<br>";
         species_seen.add(obs.comName);
       });
       // The title that is displayed on the map is a (de-duplicated) list of species.
@@ -152,25 +162,4 @@ function update_map() {
     }
   });
   set_source_data("ebird-sightings", {"type": "FeatureCollection", "features": features});
-}
-
-// Load new eBird data to display.
-function load_ebird_data() {
-  let request = new XMLHttpRequest();
-  let lnglat = get_map_center();
-  let refresh_button = document.getElementById("refresh");
-  request.addEventListener("load", function() {
-    current_data_points = JSON.parse(request.responseText);
-    update_map();
-    refresh_button.classList.remove("floating-sync-button-loading");
-    refresh_button.classList.add("floating-sync-button-loaded");
-    refresh_button.classList.remove("fa-spin");
-    update_radius_circle(lnglat);
-  });
-  refresh_button.classList.remove("floating-sync-button-loaded");
-  refresh_button.classList.add("floating-sync-button-loading");
-  refresh_button.classList.add("fa-spin");
-  request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=7&dist=" + distance_radius);
-  request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
-  request.send();
 }

@@ -43,9 +43,13 @@
   </head>
   <body>
     <div class="filter-ctrl">
-      <input id="country" type="text">
-      <input id="state" type="text">
-      <input id="county" type="text">
+      <form autocomplete="off">
+        <input id="country" type="text" autocomplete="birding-country">
+        <!--<input id="state" type="text" autocomplete="birding-state">
+        <input id="county" type="text" autocomplete="birding-county">-->
+        <input id="filter-days" type="range" min="0" max="7" value="7" class="slider">
+        <span id="days-to-search"></span><br/>
+      </form>
     </div>
     <div id="map"></div>
     <a href="#" class="floating-sync-button floating-sync-button-loading fa-spin" id="refresh">
@@ -58,33 +62,51 @@
 
       // Distance radius for finding observations
       var distance_radius = 100;
-
-      // Get the current location and initialize map
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => set_up_map(position.coords.longitude, position.coords.latitude));
-      } else {
-        set_up_map(0, 0);
-      }
-      function set_up_map(lon, lat) {
-        jump_map(lon, lat);
-        load_ebird_data();
-      }
       
-      var country_codes;
       // Get eBird country codes.
-      function load_ebird_data() {
+      {
         let request = new XMLHttpRequest();
         request.addEventListener("load", function() {
-          country_codes = JSON.parse(request.responseText);
+          let country_code_dict = {};
+          let country_codes = JSON.parse(request.responseText);
           let country_list = [];
           country_codes.forEach(function (country_data, index) {
             country_list.push(country_data["name"]);
+            country_code_dict[country_data["name"]] = country_data["code"];
           });
           $("#country").autocomplete({
-            source: countries
+            source: country_list
+          });
+          $("#country").change(function() {
+            let country_val = $("#country").val();
+            if (country_val in country_code_dict) {
+              get_ebird_data(country_code_dict[country_val]);
+            } else {
+              selected_country_code = "";
+            }
           });
         });
         request.open("GET", "list_countries.php");
+        request.send();
+      }
+      
+      // Load new eBird data to display.
+      function get_ebird_data(selected_country_code) {
+        let request = new XMLHttpRequest();
+        let lnglat = get_map_center();
+        let refresh_button = document.getElementById("refresh");
+        request.addEventListener("load", function() {
+          set_data_points(JSON.parse(request.responseText));
+          update_map();
+          refresh_button.classList.remove("floating-sync-button-loading");
+          refresh_button.classList.add("floating-sync-button-loaded");
+          refresh_button.classList.remove("fa-spin");
+        });
+        refresh_button.classList.remove("floating-sync-button-loaded");
+        refresh_button.classList.add("floating-sync-button-loading");
+        refresh_button.classList.add("fa-spin");
+        request.open("GET", "https://api.ebird.org/v2/data/obs/" + selected_country_code + "/recent?back=1");
+        request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
         request.send();
       }
 

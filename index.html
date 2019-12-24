@@ -111,6 +111,31 @@
         update_map();
       };
       days_to_search_display.innerHTML = filter_days.value + " days";
+      
+
+      // Load new eBird data to display.
+      function load_ebird_data() {
+        let request = new XMLHttpRequest();
+        let lnglat = get_map_center();
+        let refresh_button = document.getElementById("refresh");
+        request.addEventListener("load", function() {
+          set_data_points(JSON.parse(request.responseText));
+          update_map();
+          refresh_button.classList.remove("floating-sync-button-loading");
+          refresh_button.classList.add("floating-sync-button-loaded");
+          refresh_button.classList.remove("fa-spin");
+          update_radius_circle(lnglat);
+        });
+        refresh_button.classList.remove("floating-sync-button-loaded");
+        refresh_button.classList.add("floating-sync-button-loading");
+        refresh_button.classList.add("fa-spin");
+        request.open("GET", "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" + lnglat.lat + "&lng=" + lnglat.lng + "&sppLocale=en&detail=full&back=7&dist=" + distance_radius);
+        request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
+        request.send();
+      }
+
+      // Load new eBird data when the refresh button is clicked.
+      document.getElementById("refresh").onclick = load_ebird_data;
     </script>
   </body>
 </html>
