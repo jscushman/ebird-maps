@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', function() {
       new mapboxgl.Popup().setLngLat(coordinates).setHTML(description).addTo(map);
     });
   });
+
+  // Load new eBird data when the refresh button is clicked.
+  document.getElementById("refresh").onclick = load_ebird_data;
 }, false);
 
 function jump_map(lon, lat) {
@@ -155,6 +158,7 @@ function update_map() {
 function load_ebird_data() {
   let request = new XMLHttpRequest();
   let lnglat = get_map_center();
+  let refresh_button = document.getElementById("refresh");
   request.addEventListener("load", function() {
     current_data_points = JSON.parse(request.responseText);
     update_map();

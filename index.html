@@ -51,7 +51,6 @@
       // UI elements
       var filter_days = document.getElementById("filter-days");
       var days_to_search_display = document.getElementById("days-to-search");
-      var refresh_button = document.getElementById("refresh");
 
       // Distance radius for finding observations
       var distance_radius = 100;
@@ -83,7 +82,6 @@
           }
         });
         load_ebird_data();
-        refresh_button.onclick = load_ebird_data;
       }
 
       // Draw a circle of the appropriate radius at the appropriate location.
