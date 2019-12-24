@@ -70,16 +70,17 @@
         load_ebird_data();
       }
       
-      var countries;
+      var country_codes;
       // Get eBird country codes.
       function load_ebird_data() {
         let request = new XMLHttpRequest();
         request.addEventListener("load", function() {
-          countries = JSON.parse(request.responseText);
-          countries.forEach(function (country_data, index) {
-            console.log(country_data);
+          country_codes = JSON.parse(request.responseText);
+          let country_list = [];
+          country_codes.forEach(function (country_data, index) {
+            country_list.push(country_data["name"]);
           });
-          $("#countries").autocomplete({
+          $("#country").autocomplete({
             source: countries
           });
         });
