@@ -44,9 +44,9 @@
   <body>
     <div class="filter-ctrl">
       <form autocomplete="off">
-        <input id="country" type="text" autocomplete="birding-country">
-        <!--<input id="state" type="text" autocomplete="birding-state">
-        <input id="county" type="text" autocomplete="birding-county">-->
+        <input id="birding-country" type="text" autocomplete="birding-country">
+        <input id="birding-state" type="text" autocomplete="birding-state">
+        <input id="birding-county" type="text" autocomplete="birding-county">
         <input id="filter-days" type="range" min="0" max="7" value="7" class="slider">
         <span id="days-to-search"></span><br/>
       </form>
@@ -64,6 +64,7 @@
       var distance_radius = 100;
       
       // Get eBird country codes.
+      var selected_country_code = "";
       {
         let request = new XMLHttpRequest();
         request.addEventListener("load", function() {
@@ -74,13 +75,14 @@
             country_list.push(country_data["name"]);
             country_code_dict[country_data["name"]] = country_data["code"];
           });
-          $("#country").autocomplete({
+          $("#birding-country").autocomplete({
             source: country_list
           });
-          $("#country").change(function() {
-            let country_val = $("#country").val();
+          $("#birding-country").change(function() {
+            let country_val = $("#birding-country").val();
             if (country_val in country_code_dict) {
-              get_ebird_data(country_code_dict[country_val]);
+              selected_country_code = country_code_dict[country_val];
+              get_states();
             } else {
               selected_country_code = "";
             }
@@ -90,8 +92,64 @@
         request.send();
       }
       
+      var selected_state_code = "";
+      function get_states() {
+        let request = new XMLHttpRequest();
+        request.addEventListener("load", function() {
+          let state_code_dict = {};
+          let state_codes = JSON.parse(request.responseText);
+          let state_list = [];
+          state_codes.forEach(function (state_data, index) {
+            state_list.push(state_data["name"]);
+            state_code_dict[state_data["name"]] = state_data["code"];
+          });
+          $("#birding-state").autocomplete({
+            source: state_list
+          });
+          $("#birding-state").change(function() {
+            let state_val = $("#birding-state").val();
+            if (state_val in state_code_dict) {
+              selected_state_code = state_code_dict[state_val];
+              get_counties();
+            } else {
+              selected_state_code = "";
+            }
+          });
+        });
+        request.open("GET", "list_states.php?country=" + selected_country_code);
+        request.send();
+      }
+      
+      var selected_county_code = "";
+      function get_counties() {
+        let request = new XMLHttpRequest();
+        request.addEventListener("load", function() {
+          let county_code_dict = {};
+          let county_codes = JSON.parse(request.responseText);
+          let county_list = [];
+          county_codes.forEach(function (county_data, index) {
+            county_list.push(county_data["name"]);
+            county_code_dict[county_data["name"]] = county_data["code"];
+          });
+          $("#birding-county").autocomplete({
+            source: county_list
+          });
+          $("#birding-county").change(function() {
+            let county_val = $("#birding-county").val();
+            if (county_val in county_code_dict) {
+              selected_county_code = county_code_dict[county_val];
+              get_ebird_data();
+            } else {
+              selected_county_code = "";
+            }
+          });
+        });
+        request.open("GET", "list_counties.php?state=" + selected_state_code);
+        request.send();
+      }
+      
       // Load new eBird data to display.
-      function get_ebird_data(selected_country_code) {
+      function get_ebird_data() {
         let request = new XMLHttpRequest();
         let lnglat = get_map_center();
         let refresh_button = document.getElementById("refresh");
@@ -105,7 +163,7 @@
         refresh_button.classList.remove("floating-sync-button-loaded");
         refresh_button.classList.add("floating-sync-button-loading");
         refresh_button.classList.add("fa-spin");
-        request.open("GET", "https://api.ebird.org/v2/data/obs/" + selected_country_code + "/recent?back=1");
+        request.open("GET", "https://api.ebird.org/v2/data/obs/" + selected_county_code + "/recent");
         request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
         request.send();
       }
