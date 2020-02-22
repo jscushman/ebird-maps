@@ -1,22 +1,46 @@
 mapboxgl.accessToken = "***REMOVED***";
 
 // Distance radius for finding observations
-var distance_radius = 100;
+var distance_radius: number = 100;
+
+interface Observation {
+  obsDt: string;
+  obsId: string;
+  locId: string;
+  locName: string;
+  speciesCode: string;
+  comName: string;
+  howMany: number;
+  lng: number;
+  lat: number;
+  subId: string;
+  userDisplayName?: string;
+  obsReviewed?: boolean;
+  hasRichMedia?: boolean;
+}
+
+interface SightingDetails {
+  obs: Observation;
+  moment: moment.Moment;
+  description: string;
+}
 
 // Data points to display on map
-var location_sightings = new Map();
+var location_sightings = new Map<string, Array<SightingDetails>>();
 
-function set_data_points(current_data_points) {
+function set_data_points(current_data_points: Array<Observation>) {
   // Create mapping from location ID to all observations in that location.
-  current_data_points.forEach(function(obs, index) {
-    obs.moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
-    const loc = obs.locId;
+  for (const obs of current_data_points) {
+    let sighting: SightingDetails;
+    sighting.obs = obs;
+    sighting.moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
+    const loc: string = obs.locId;
     if (!location_sightings.has(loc)) {
-      location_sightings.set(loc, [obs]);
+      location_sightings.set(loc, [sighting]);
     } else {
-      location_sightings.get(loc).push(obs);
+      location_sightings.get(loc).push(sighting);
     }
-    obs.description =
+    sighting.description =
       '<b><a href="https://ebird.org/species/' +
       obs.speciesCode +
       '" target="_blank">' +
@@ -24,31 +48,31 @@ function set_data_points(current_data_points) {
       "</a>" +
       (obs.howMany > 1 ? " (" + obs.howMany + ")" : "") +
       "</b> observed <b>" +
-      obs.moment.fromNow() +
+      sighting.moment.fromNow() +
       "</b> ";
     if (obs.hasOwnProperty("subId")) {
-      obs.description =
-        obs.description +
+      sighting.description =
+        sighting.description +
         '(<a href="https://ebird.org/view/checklist/' +
         obs.subId +
         '" target="_blank">' +
         obs.obsDt +
         "</a>) ";
     } else {
-      obs.description = obs.description + "(" + obs.obsDt + ") ";
+      sighting.description = sighting.description + "(" + obs.obsDt + ") ";
     }
     if (obs.hasOwnProperty("userDisplayName")) {
-      obs.description =
-        obs.description +
+      sighting.description =
+        sighting.description +
         "by " +
         obs.userDisplayName +
         (obs.obsReviewed ? "" : " (UNCONFIRMED)") +
         (obs.hasRichMedia ? " (with photo)" : "");
     }
-  });
+  }
 }
 
-var map;
+var map: mapboxgl.Map;
 document.addEventListener(
   "DOMContentLoaded",
   function() {
@@ -123,13 +147,13 @@ document.addEventListener(
 
       // Set a popup to appear when a point is clicked.
       map.on("click", "points", function(e) {
-        const coordinates = e.features[0].geometry.coordinates.slice();
-        const description = e.features[0].properties.description;
+        const coordinates: GeoJSON.Position = (e.features[0].geometry as GeoJSON.Point).coordinates;
+        const description: string = e.features[0].properties.description;
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
           coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
         new mapboxgl.Popup()
-          .setLngLat(coordinates)
+          .setLngLat({ lng: coordinates[0], lat: coordinates[1] })
           .setHTML(description)
           .addTo(map);
       });
@@ -142,7 +166,8 @@ document.addEventListener(
           geometry: {
             type: "Polygon",
             coordinates: [[]]
-          }
+          },
+          properties: {}
         }
       });
       map.addLayer({
@@ -164,8 +189,12 @@ document.addEventListener(
       }
 
       // Display appropriate text when the number of days is changed.
-      const filter_days = document.getElementById("filter-days") as HTMLInputElement;
-      const days_to_search_display = document.getElementById("days-to-search") as HTMLInputElement;
+      const filter_days: HTMLInputElement = document.getElementById(
+        "filter-days"
+      ) as HTMLInputElement;
+      const days_to_search_display: HTMLInputElement = document.getElementById(
+        "days-to-search"
+      ) as HTMLInputElement;
       filter_days.oninput = function() {
         if (+filter_days.value == 0) {
           days_to_search_display.innerHTML = "Today only";
@@ -186,22 +215,22 @@ document.addEventListener(
 );
 
 // Set up the map.
-function set_up_map(lon, lat) {
+function set_up_map(lon: number, lat: number) {
   map.jumpTo({
-    center: [lon, lat]
+    center: { lon: lon, lat: lat }
   });
   load_ebird_data();
 }
 
 // Draw a circle of the appropriate radius at the appropriate location.
-function update_radius_circle(lnglat) {
-  const lng_rad = (lnglat.lng * Math.PI) / 180;
-  const lat_rad = (lnglat.lat * Math.PI) / 180;
-  const distance_radians = distance_radius / 6356;
-  const radius_points = [];
+function update_radius_circle(lnglat: mapboxgl.LngLat) {
+  const lng_rad: number = (lnglat.lng * Math.PI) / 180;
+  const lat_rad: number = (lnglat.lat * Math.PI) / 180;
+  const distance_radians: number = distance_radius / 6356;
+  const radius_points: number[][] = [];
   for (let i = 0; i <= 100; i++) {
-    const angle = (2 * Math.PI * i) / 100;
-    const newlat = Math.asin(
+    const angle: number = (2 * Math.PI * i) / 100;
+    const newlat: number = Math.asin(
       Math.sin(lat_rad) * Math.cos(distance_radians) +
         Math.cos(lat_rad) * Math.sin(distance_radians) * Math.cos(angle)
     );
@@ -213,20 +242,21 @@ function update_radius_circle(lnglat) {
       );
     radius_points.push([(newlon * 180) / Math.PI, (newlat * 180) / Math.PI]);
   }
-  map.getSource("search-radius-points").setData({
+  (map.getSource("search-radius-points") as mapboxgl.GeoJSONSource).setData({
     type: "Feature",
     geometry: {
       type: "Polygon",
       coordinates: [radius_points]
-    }
+    },
+    properties: {}
   });
 }
 
 // Load new eBird data to display.
 function load_ebird_data() {
-  const request = new XMLHttpRequest();
-  const lnglat = map.getCenter();
-  const refresh_button = document.getElementById("refresh");
+  const request: XMLHttpRequest = new XMLHttpRequest();
+  const lnglat: mapboxgl.LngLat = map.getCenter();
+  const refresh_button: HTMLElement = document.getElementById("refresh");
   request.addEventListener("load", function() {
     set_data_points(JSON.parse(request.responseText));
     update_map(map);
@@ -254,13 +284,15 @@ function load_ebird_data() {
 // Plot data points on map.
 function update_map(map) {
   console.log("Populating map with " + location_sightings.size + " sighting locations.");
-  const features = [];
-  const start_of_today = moment().startOf("day");
+  const features: GeoJSON.Feature<GeoJSON.Geometry>[] = [];
+  const start_of_today: moment.Moment = moment().startOf("day");
 
   // Plot each location's sightings on the map.
-  location_sightings.forEach(function(sightings, loc, map) {
+  location_sightings.forEach(function(sightings) {
     // Sort sightings by date, and filter sightings that are too old.
-    sightings.sort((a, b) => a.moment.isBefore(b.moment));
+    sightings.sort(
+      (a: SightingDetails, b: SightingDetails) => a.moment.valueOf() - b.moment.valueOf()
+    );
     const filter_days = document.getElementById("filter-days") as HTMLInputElement;
     sightings = sightings.filter(
       a => start_of_today.diff(a.moment.clone().startOf("day"), "days") <= +filter_days.value
@@ -271,8 +303,11 @@ function update_map(map) {
     if (sightings.length > 0) {
       // Calculate the number of days ago that the sighting occured, and get the time_ago_category,
       // which lets us display different colors for different categories.
-      const time_ago_days = start_of_today.diff(sightings[0].moment.clone().startOf("day"), "days");
-      const time_ago_category = (() => {
+      const time_ago_days: number = start_of_today.diff(
+        sightings[0].moment.clone().startOf("day"),
+        "days"
+      );
+      const time_ago_category: string = (() => {
         if (time_ago_days < 1) {
           return "today";
         } else if (time_ago_days < 2) {
@@ -281,37 +316,45 @@ function update_map(map) {
           return "old";
         }
       })();
+
       // Prepare to build up a list of the species seen in a particular location and a display
       // message for the popup.
-      const species_seen = new Map();
-      let description = "<h2>" + sightings[0].locName + "</h2>";
+      interface SpeciesDetails {
+        has_photo: boolean;
+      }
+      const species_seen: Map<string, SpeciesDetails> = new Map<string, SpeciesDetails>();
+      let description: string = "<h2>" + sightings[0].obs.locName + "</h2>";
       sightings = sightings.filter(
-        (obs, index, self) =>
-          index === self.findIndex(o => o.obsId === obs.obsId && o.speciesCode === obs.speciesCode)
+        (sighting: SightingDetails, index: number, self: SightingDetails[]) =>
+          index ===
+          self.findIndex(
+            s =>
+              s.obs.obsId === sighting.obs.obsId && s.obs.speciesCode === sighting.obs.speciesCode
+          )
       );
-      sightings.forEach(function(obs, index) {
-        description = obs.description + "<br>";
-        if (!species_seen.has(obs.comName)) {
-          species_seen.set(obs.comName, {
-            has_photo: obs.hasRichMedia
+      sightings.forEach(function(sighting: SightingDetails) {
+        description = sighting.description + "<br>";
+        if (!species_seen.has(sighting.obs.comName)) {
+          species_seen.set(sighting.obs.comName, {
+            has_photo: sighting.obs.hasRichMedia
           });
         } else {
-          species_seen.get(obs.comName).has_photo =
-            species_seen.get(obs.comName).has_photo || obs.hasRichMedia;
+          species_seen.get(sighting.obs.comName).has_photo =
+            species_seen.get(sighting.obs.comName).has_photo || sighting.obs.hasRichMedia;
         }
       });
 
       // The title that is displayed on the map is a (de-duplicated) list of species.
-      const species_seen_display_name = [];
+      const species_seen_display_name: string[] = [];
       species_seen.forEach(function(properties, species, map) {
         species_seen_display_name.push(species + (properties.has_photo ? " (P)" : ""));
       });
-      const title = [...species_seen_display_name].join(",\n");
-      const new_feature = {
+      const title: string = [...species_seen_display_name].join(",\n");
+      const new_feature: GeoJSON.Feature<GeoJSON.Geometry> = {
         type: "Feature",
         geometry: {
           type: "Point",
-          coordinates: [sightings[0].lng, sightings[0].lat]
+          coordinates: [sightings[0].obs.lng, sightings[0].obs.lat]
         },
         properties: {
           title: title,
@@ -322,7 +365,7 @@ function update_map(map) {
       features.push(new_feature);
     }
   });
-  map.getSource("ebird-sightings").setData({
+  (map.getSource("ebird-sightings") as mapboxgl.GeoJSONSource).setData({
     type: "FeatureCollection",
     features: features
   });
