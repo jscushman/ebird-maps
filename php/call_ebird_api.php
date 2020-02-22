@@ -9,7 +9,7 @@ $data = array(
 );
 
 $curl = curl_init();
-$url = sprintf("https://api.ebird.org/v2/data/obs/geo/recent/notable?%s", http_build_query($data));
+$url = sprintf("https://api.ebird.org/v2/data/obs/geo/recent/notable?sppLocale=en&detail=full&%s", http_build_query($data));
 
 $api_file = fopen(".ebird_api_token", "r");
 if (!feof($api_file)) {

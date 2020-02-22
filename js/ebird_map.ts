@@ -270,14 +270,13 @@ function load_ebird_data() {
   refresh_button.classList.add("fa-spin");
   request.open(
     "GET",
-    "https://api.ebird.org/v2/data/obs/geo/recent/notable?lat=" +
+    "/php/call_ebird_api.php?lat=" +
       lnglat.lat +
       "&lng=" +
       lnglat.lng +
-      "&sppLocale=en&detail=full&back=7&dist=" +
+      "&back=7&dist=" +
       distance_radius
   );
-  request.setRequestHeader("X-eBirdApiToken", "***REMOVED***");
   request.send();
 }
 
