@@ -9,7 +9,7 @@ function set_data_points(data_points) {
 function update_map(map) {
   console.log("Populating map with " + current_data_points.length + " points");
   let features = [];
-  let now = moment();
+  let start_of_today = moment().startOf("day");
 
   // Create mapping from location ID to all observations in that location.
   let location_sightings = new Map();
@@ -27,12 +27,12 @@ function update_map(map) {
   location_sightings.forEach(function (sightings, loc, map) {
     // Sort sightings by date, and filter sightings that are too old.
     sightings.sort((a, b) => a.moment.isBefore(b.moment));
-    sightings = sightings.filter(a => now.startOf("day").diff(a.moment.startOf("day"), "days") <= document.getElementById("filter-days").value);
+    sightings = sightings.filter(a => start_of_today.diff(a.moment.clone().startOf("day"), "days") <= document.getElementById("filter-days").value);
 
     // If there are sightings for this location that were not filtered out, build up the display message.
     if (sightings.length > 0) {
       // Calculate the number of days ago that the sighting occured, and get the time_ago_category, which lets us display different colors for different categories.
-      let time_ago_days = now.startOf("day").diff(sightings[0].moment.startOf("day"), "days");
+      let time_ago_days = start_of_today.diff(sightings[0].moment.clone().startOf("day"), "days");
       let time_ago_category = 0;
       if (time_ago_days < 1) {
         time_ago_category = "today";
