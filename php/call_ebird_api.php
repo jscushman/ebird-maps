@@ -8,9 +8,6 @@ $data = array(
     'dist' => $_GET["dist"]
 );
 
-$curl = curl_init();
-$url = sprintf("https://api.ebird.org/v2/data/obs/geo/recent/notable?sppLocale=en&detail=full&%s", http_build_query($data));
-
 $api_file = fopen(".ebird_api_token", "r");
 if (!feof($api_file)) {
   $header = fgets($api_file);
@@ -19,6 +16,8 @@ if (!feof($api_file)) {
 }
 fclose($api_file);
 
+$curl = curl_init();
+$url = sprintf("https://api.ebird.org/v2/data/obs/geo/recent/notable?sppLocale=en&detail=full&%s", http_build_query($data));
 curl_setopt($curl, CURLOPT_URL, $url);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl, CURLOPT_HTTPHEADER, array($header));

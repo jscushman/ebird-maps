@@ -31,16 +31,8 @@ var location_sightings = new Map<string, Array<SightingDetails>>();
 function set_data_points(current_data_points: Array<Observation>) {
   // Create mapping from location ID to all observations in that location.
   for (const obs of current_data_points) {
-    let sighting: SightingDetails;
-    sighting.obs = obs;
-    sighting.moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
-    const loc: string = obs.locId;
-    if (!location_sightings.has(loc)) {
-      location_sightings.set(loc, [sighting]);
-    } else {
-      location_sightings.get(loc).push(sighting);
-    }
-    sighting.description =
+    let obs_moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
+    let description =
       '<b><a href="https://ebird.org/species/' +
       obs.speciesCode +
       '" target="_blank">' +
@@ -48,27 +40,35 @@ function set_data_points(current_data_points: Array<Observation>) {
       "</a>" +
       (obs.howMany > 1 ? " (" + obs.howMany + ")" : "") +
       "</b> observed <b>" +
-      sighting.moment.fromNow() +
+      obs_moment.fromNow() +
       "</b> ";
     if (obs.hasOwnProperty("subId")) {
-      sighting.description =
-        sighting.description +
+      description =
+        description +
         '(<a href="https://ebird.org/view/checklist/' +
         obs.subId +
         '" target="_blank">' +
         obs.obsDt +
         "</a>) ";
     } else {
-      sighting.description = sighting.description + "(" + obs.obsDt + ") ";
+      description = description + "(" + obs.obsDt + ") ";
     }
     if (obs.hasOwnProperty("userDisplayName")) {
-      sighting.description =
-        sighting.description +
+      description =
+        description +
         "by " +
         obs.userDisplayName +
         (obs.obsReviewed ? "" : " (UNCONFIRMED)") +
         (obs.hasRichMedia ? " (with photo)" : "");
     }
+    let sighting: SightingDetails = {obs : obs, moment : obs_moment, description: description};
+    const loc: string = obs.locId;
+    if (!location_sightings.has(loc)) {
+      location_sightings.set(loc, [sighting]);
+    } else {
+      location_sightings.get(loc).push(sighting);
+    }
+
   }
 }
 
