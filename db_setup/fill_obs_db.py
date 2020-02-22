@@ -7,7 +7,7 @@ import csv
 def import_observations(file_name, user_id):
     with open(file_name, mode='r') as infile:
         reader = csv.DictReader(infile)
-        with sqlite3.connect("ebird_obs_data.sqlite") as conn:
+        with sqlite3.connect("../db/ebird_obs_data.sqlite") as conn:
             cur = conn.cursor()
     
             cur.execute("DELETE FROM Observations")

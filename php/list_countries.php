@@ -1,5 +1,5 @@
 <?php
-$obs_db = new SQLite3('db/ebird_region_data.sqlite');
+$obs_db = new SQLite3('../db/ebird_region_data.sqlite');
 $query = "SELECT name, code FROM Countries";
 $res = $obs_db->query($query);
 $countries = array();

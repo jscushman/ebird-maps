@@ -88,7 +88,7 @@
             }
           });
         });
-        request.open("GET", "list_countries.php");
+        request.open("GET", "php/list_countries.php");
         request.send();
       }
       
@@ -116,7 +116,7 @@
             }
           });
         });
-        request.open("GET", "list_states.php?country=" + selected_country_code);
+        request.open("GET", "php/list_states.php?country=" + selected_country_code);
         request.send();
       }
       
@@ -144,7 +144,7 @@
             }
           });
         });
-        request.open("GET", "list_counties.php?state=" + selected_state_code);
+        request.open("GET", "php/list_counties.php?state=" + selected_state_code);
         request.send();
       }
       

@@ -1,5 +1,5 @@
 <?php
-$obs_db = new SQLite3('db/ebird_region_data.sqlite');
+$obs_db = new SQLite3('../db/ebird_region_data.sqlite');
 $state = $_GET["state"];
 $query = "SELECT name, code FROM Counties WHERE code LIKE '$state-%'";
 $res = $obs_db->query($query);
