@@ -9,7 +9,7 @@ function set_data_points(current_data_points) {
   // Create mapping from location ID to all observations in that location.
   current_data_points.forEach(function (obs, index) {
     obs.moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
-    let loc = obs.locId;
+    const loc = obs.locId;
     if (!(location_sightings.has(loc))) {
       location_sightings.set(loc, [obs]);
     } else {
@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Display appropriate text when the number of days is changed.
-    let filter_days = document.getElementById("filter-days");
-    let days_to_search_display = document.getElementById("days-to-search");
+    const filter_days = document.getElementById("filter-days");
+    const days_to_search_display = document.getElementById("days-to-search");
     filter_days.oninput = function() {
       if (filter_days.value == 0) {
         days_to_search_display.innerHTML = "Today only";
@@ -145,14 +145,14 @@ function set_up_map(lon, lat) {
 
 // Draw a circle of the appropriate radius at the appropriate location.
 function update_radius_circle(lnglat) {
-  let lng_rad = lnglat.lng * Math.PI / 180
-  let lat_rad = lnglat.lat * Math.PI / 180
-  let distance_radians = distance_radius / 6356
-  let radius_points = []
+  const lng_rad = lnglat.lng * Math.PI / 180
+  const lat_rad = lnglat.lat * Math.PI / 180
+  const distance_radians = distance_radius / 6356
+  const radius_points = []
   for (i = 0; i <= 100; i++) {
-    let angle = 2 * Math.PI * i / 100;
-    let newlat = Math.asin(Math.sin(lat_rad) * Math.cos(distance_radians) + Math.cos(lat_rad) * Math.sin(distance_radians) * Math.cos(angle))
-    let newlon = lng_rad + Math.atan2(Math.sin(angle) * Math.sin(distance_radians) * Math.cos(lat_rad), Math.cos(distance_radians) - Math.sin(lat_rad) * Math.sin(newlat))
+    const angle = 2 * Math.PI * i / 100;
+    const newlat = Math.asin(Math.sin(lat_rad) * Math.cos(distance_radians) + Math.cos(lat_rad) * Math.sin(distance_radians) * Math.cos(angle))
+    const newlon = lng_rad + Math.atan2(Math.sin(angle) * Math.sin(distance_radians) * Math.cos(lat_rad), Math.cos(distance_radians) - Math.sin(lat_rad) * Math.sin(newlat))
     radius_points.push([newlon * 180 / (Math.PI), newlat * 180 / (Math.PI)])
   }
   map.getSource("search-radius-points").setData({"type": "Feature", "geometry": {"type": "Polygon", "coordinates" : [radius_points]}});
@@ -160,9 +160,9 @@ function update_radius_circle(lnglat) {
 
 // Load new eBird data to display.
 function load_ebird_data() {
-  let request = new XMLHttpRequest();
-  let lnglat = map.getCenter();
-  let refresh_button = document.getElementById("refresh");
+  const request = new XMLHttpRequest();
+  const lnglat = map.getCenter();
+  const refresh_button = document.getElementById("refresh");
   request.addEventListener("load", function() {
     set_data_points(JSON.parse(request.responseText));
     update_map(map);
@@ -182,8 +182,8 @@ function load_ebird_data() {
 // Plot data points on map.
 function update_map(map) {
   console.log("Populating map with " + location_sightings.size + " sighting locations.");
-  let features = [];
-  let start_of_today = moment().startOf("day");
+  const features = [];
+  const start_of_today = moment().startOf("day");
 
   // Plot each location's sightings on the map.
   location_sightings.forEach(function (sightings, loc, map) {
@@ -194,33 +194,37 @@ function update_map(map) {
     // If there are sightings for this location that were not filtered out, build up the display message.
     if (sightings.length > 0) {
       // Calculate the number of days ago that the sighting occured, and get the time_ago_category, which lets us display different colors for different categories.
-      let time_ago_days = start_of_today.diff(sightings[0].moment.clone().startOf("day"), "days");
-      let time_ago_category = 0;
-      if (time_ago_days < 1) {
-        time_ago_category = "today";
-      } else if (time_ago_days < 2) {
-        time_ago_category = "yesterday";
-      } else {
-        time_ago_category = "old";
-      }
+      const time_ago_days = start_of_today.diff(sightings[0].moment.clone().startOf("day"), "days");
+      const time_ago_category = (() => {
+        if (time_ago_days < 1) {
+          return "today";
+        } else if (time_ago_days < 2) {
+          return "yesterday";
+        } else {
+          return "old";
+        }
+      })();
       // Prepare to build up a list of the species seen in a particular location and a display message for the popup.
-      let species_seen = new Set();
+      const species_seen = new Map();
       let description = "<h2>" + sightings[0].locName + "</h2>";
       sightings = sightings.filter((obs, index, self) => (index === self.findIndex((o) => (
         o.obsId === obs.obsId && o.speciesCode === obs.speciesCode))));
       sightings.forEach(function (obs, index) {
         description = obs.description + "<br>";
-        let photo_suffix = (obs.hasRichMedia ? " (P)" : "")
-        if (!species_seen.has(obs.comName) && !species_seen.has(obs.comName + " (P)")) {
-          species_seen.add(obs.comName + photo_suffix);
-        } else if (!species_seen.has(obs.comName + " (P)") && obs.hasRichMedia) {
-          species_seen.delete(obs.comName);
-          species_seen.add(obs.comName + photo_suffix);
+        if (!species_seen.has(obs.comName)) {
+          species_seen.set(obs.comName, {"has_photo": obs.hasRichMedia});
+        } else {
+          species_seen.get(obs.comName).has_photo = species_seen.get(obs.comName).has_photo || obs.hasRichMedia;
         }
       });
+
       // The title that is displayed on the map is a (de-duplicated) list of species.
-      let title = [...species_seen].join(",\n");
-      let new_feature = {
+      species_seen_display_name = []
+      species_seen.forEach(function (properties, species, map) {
+        species_seen_display_name.push(species + (properties.has_photo ? " (P)" : ""))
+      });
+      const title = [...species_seen_display_name].join(",\n");
+      const new_feature = {
         "type": "Feature",
         "geometry": {
           "type": "Point",
