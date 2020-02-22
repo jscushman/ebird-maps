@@ -1,4 +1,4 @@
-mapboxgl.accessToken = "***REMOVED***";
+// Set mapboxgl.accessToken in another JS file
 
 // Distance radius for finding observations
 var distance_radius: number = 100;

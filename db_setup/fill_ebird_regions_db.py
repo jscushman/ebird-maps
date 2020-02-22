@@ -5,7 +5,7 @@ import requests
 
 ebird_data_file = "../db/ebird_region_data.sqlite"
 country_url = "https://api.ebird.org/v2/ref/region/list/country/world.json"
-headers = {"X-eBirdApiToken": "***REMOVED***"}
+headers = {"X-eBirdApiToken": "fogceakfdmtc"}
 country_list = requests.get(url=country_url, headers=headers).json()
 
 with sqlite3.connect(ebird_data_file) as conn:
