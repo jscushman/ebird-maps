@@ -5,9 +5,10 @@ var distance_radius = 100;
 
 // Data points to display on map
 var location_sightings = new Map();
+
 function set_data_points(current_data_points) {
   // Create mapping from location ID to all observations in that location.
-  current_data_points.forEach(function (obs, index) {
+  current_data_points.forEach(function(obs, index) {
     obs.moment = moment(obs.obsDt, "YYYY-MM-DD HH:mm");
     const loc = obs.locId;
     if (!(location_sightings.has(loc))) {
@@ -28,9 +29,9 @@ function set_data_points(current_data_points) {
 }
 
 var map;
-document.addEventListener('DOMContentLoaded', function() {  
+document.addEventListener('DOMContentLoaded', function() {
   // Map to show all observations
-   map = new mapboxgl.Map({
+  map = new mapboxgl.Map({
     container: "map",
     style: "mapbox://styles/mapbox/light-v9",
     center: [0, 0],
@@ -38,23 +39,36 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   map.on("load", function() {
-    map.addSource("ebird-sightings", {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}});
+    map.addSource("ebird-sightings", {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
+    });
     map.addLayer({
       "id": "points",
       "type": "circle",
       "source": "ebird-sightings",
       "paint": {
-        "circle-opacity" : {
+        "circle-opacity": {
           "base": 0.0,
-          "stops": [[8, 0.5], [12, 0.5], [13, 1.0]]
+          "stops": [
+            [8, 0.5],
+            [12, 0.5],
+            [13, 1.0]
+          ]
         },
         "circle-radius": {
           "base": 2,
-          "stops": [[8, 2], [11, 6], [22, 180]]
+          "stops": [
+            [8, 2],
+            [11, 6],
+            [22, 180]
+          ]
         },
         "circle-color": [
-          "match",
-          ["get", "time_ago_category"],
+          "match", ["get", "time_ago_category"],
           "today", "green",
           "yesterday", "orange",
           "old", "red", "black"
@@ -76,12 +90,12 @@ document.addEventListener('DOMContentLoaded', function() {
         "text-anchor": "top",
       },
       "paint": {
-        "icon-color":"#9fcb3b"
+        "icon-color": "#9fcb3b"
       }
     });
 
     // Set a popup to appear when a point is clicked.
-    map.on("click", "points", function (e) {
+    map.on("click", "points", function(e) {
       var coordinates = e.features[0].geometry.coordinates.slice();
       var description = e.features[0].properties.description;
       while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
@@ -97,7 +111,9 @@ document.addEventListener('DOMContentLoaded', function() {
         "type": "Feature",
         "geometry": {
           "type": "Polygon",
-          "coordinates": [[]]
+          "coordinates": [
+            []
+          ]
         }
       }
     });
@@ -106,10 +122,10 @@ document.addEventListener('DOMContentLoaded', function() {
       "type": "line",
       "source": "search-radius-points",
       "paint": {
-        "line-opacity" : 0.2
+        "line-opacity": 0.2
       }
     });
-    
+
     // Get the current location and initialize map
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => set_up_map(position.coords.longitude, position.coords.latitude));
@@ -132,14 +148,16 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     days_to_search_display.innerHTML = filter_days.value + " days";
   });
-  
+
   // Load new eBird data when the refresh button is clicked.
   document.getElementById("refresh").onclick = load_ebird_data;
 }, false);
 
 // Set up the map.
 function set_up_map(lon, lat) {
-  map.jumpTo({center: [lon, lat]});
+  map.jumpTo({
+    center: [lon, lat]
+  });
   load_ebird_data();
 }
 
@@ -155,7 +173,13 @@ function update_radius_circle(lnglat) {
     const newlon = lng_rad + Math.atan2(Math.sin(angle) * Math.sin(distance_radians) * Math.cos(lat_rad), Math.cos(distance_radians) - Math.sin(lat_rad) * Math.sin(newlat))
     radius_points.push([newlon * 180 / (Math.PI), newlat * 180 / (Math.PI)])
   }
-  map.getSource("search-radius-points").setData({"type": "Feature", "geometry": {"type": "Polygon", "coordinates" : [radius_points]}});
+  map.getSource("search-radius-points").setData({
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [radius_points]
+    }
+  });
 }
 
 // Load new eBird data to display.
@@ -186,7 +210,7 @@ function update_map(map) {
   const start_of_today = moment().startOf("day");
 
   // Plot each location's sightings on the map.
-  location_sightings.forEach(function (sightings, loc, map) {
+  location_sightings.forEach(function(sightings, loc, map) {
     // Sort sightings by date, and filter sightings that are too old.
     sightings.sort((a, b) => a.moment.isBefore(b.moment));
     sightings = sightings.filter(a => start_of_today.diff(a.moment.clone().startOf("day"), "days") <= document.getElementById("filter-days").value);
@@ -209,10 +233,12 @@ function update_map(map) {
       let description = "<h2>" + sightings[0].locName + "</h2>";
       sightings = sightings.filter((obs, index, self) => (index === self.findIndex((o) => (
         o.obsId === obs.obsId && o.speciesCode === obs.speciesCode))));
-      sightings.forEach(function (obs, index) {
+      sightings.forEach(function(obs, index) {
         description = obs.description + "<br>";
         if (!species_seen.has(obs.comName)) {
-          species_seen.set(obs.comName, {"has_photo": obs.hasRichMedia});
+          species_seen.set(obs.comName, {
+            "has_photo": obs.hasRichMedia
+          });
         } else {
           species_seen.get(obs.comName).has_photo = species_seen.get(obs.comName).has_photo || obs.hasRichMedia;
         }
@@ -220,7 +246,7 @@ function update_map(map) {
 
       // The title that is displayed on the map is a (de-duplicated) list of species.
       species_seen_display_name = []
-      species_seen.forEach(function (properties, species, map) {
+      species_seen.forEach(function(properties, species, map) {
         species_seen_display_name.push(species + (properties.has_photo ? " (P)" : ""))
       });
       const title = [...species_seen_display_name].join(",\n");
@@ -232,12 +258,15 @@ function update_map(map) {
         },
         "properties": {
           "title": title,
-          "description" : description,
-          "time_ago_category" : time_ago_category
+          "description": description,
+          "time_ago_category": time_ago_category
         }
       };
       features.push(new_feature);
     }
   });
-  map.getSource("ebird-sightings").setData({"type": "FeatureCollection", "features": features});
+  map.getSource("ebird-sightings").setData({
+    "type": "FeatureCollection",
+    "features": features
+  });
 }
