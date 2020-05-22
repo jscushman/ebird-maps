@@ -1,3 +1,6 @@
+import { mapbox } from './mapbox.environment';
+
 export const environment = {
-  production: true
+  production: false,
+  ...mapbox,
 };
