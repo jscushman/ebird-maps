@@ -132,16 +132,16 @@ document.addEventListener(
         type: "symbol",
         source: "ebird-sightings",
         layout: {
-          "icon-allow-overlap": true,
-          "icon-image": "circle-stroked-11",
-          "text-field": "{title}",
-          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-offset": [0, 0.6],
-          "text-size": 12,
-          "text-anchor": "top"
+          'icon-allow-overlap': true,
+          'icon-image': 'circle-stroked-11',
+          'text-field': '{title}',
+          'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+          'text-offset': [0, 0.6],
+          'text-size': 12,
+          'text-anchor': 'top'
         },
         paint: {
-          "icon-color": "#9fcb3b"
+          'icon-color': '#9fcb3b'
         }
       });
 

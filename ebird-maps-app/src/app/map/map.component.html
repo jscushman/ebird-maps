@@ -1,13 +1,63 @@
 <div fxFill fxLayout="column">
     <div fxFlex fxLayout="column" class="body">
         <mgl-map [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="[-74.50, 40]"
-            [accessToken]=accessToken>
-            <mgl-control mglGeolocate [positionOptions]="{enableHighAccuracy: true}">
+            [accessToken]=accessToken (load)="map = $event">
+            <mgl-control mglGeolocate [positionOptions]="{
+                enableHighAccuracy: true
+            }">
             </mgl-control>
+            <mgl-geojson-source *ngIf="showSightings" id="ebirdSightings" [data]="ebirdSightings">
+            </mgl-geojson-source>
+            <mgl-layer *ngIf="showSightings" id="points" type="circle" [source]="ebirdSightings" [paint]="{
+                'circle-opacity': {
+                    base: 0.0,
+                    stops: [
+                        [8, 0.5],
+                        [12, 0.5],
+                        [13, 1.0]
+                    ]
+                },
+                'circle-radius': {
+                    base: 2,
+                    stops: [
+                        [8, 2],
+                        [11, 6],
+                        [22, 180]
+                    ]
+                },
+                'circle-color': [
+                    'match', ['get', 'time_ago_category'],
+                    'today', 'green',
+                    'yesterday', 'orange',
+                    'old', 'red',
+                    'black'
+                ]
+            }">
+            </mgl-layer>
+            <mgl-layer *ngIf="showSightings" id="pointsLabels" type="symbol" [source]="ebirdSightings" [layout]="{
+                'icon-allow-overlap': true,
+                'icon-image': 'circle-stroked-11',
+                'text-field': '{title}',
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-offset': [0, 0.6],
+                'text-size': 12,
+                'text-anchor': 'top'
+            }" [paint]="{
+                'icon-color': '#9fcb3b'
+            }">
+            </mgl-layer>
+            <div *ngIf="geometry">
+                <mgl-geojson-source id="searchRadiusPoints" [data]="geometry"></mgl-geojson-source>
+                <mgl-layer id="searchRadius" type="line" source="searchRadiusPoints" [paint]="{
+                    'line-opacity': 0.5
+                }"></mgl-layer>
+            </div>
         </mgl-map>
     </div>
     <div class="footer">
-        <mat-slider min="0" max="7" step="1" value={{days}} (input)="onSliderInput($event)"
-            (change)="onSliderChange($event)"></mat-slider> {{days}} days
+        <mat-slider min="0" max="7" step="1" [value]="days" (input)="onSliderInput($event)"
+            (change)="onSliderChange($event)"></mat-slider>
+        <span>{{getDisplayDays(days)}}</span>
+        <button mat-stroked-button (click)="onLoadClicked()">Load sightings</button>
     </div>
 </div>
