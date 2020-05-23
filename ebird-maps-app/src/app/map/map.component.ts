@@ -9,19 +9,19 @@ import * as mapboxgl from 'mapbox-gl';
 })
 export class MapComponent implements OnInit {
   map: mapboxgl.Map;
-  style = 'mapbox://styles/mapbox/streets-v11';
-  lat = 37.75;
-  lng = -122.41;
+  days = 4;
 
   constructor() {}
 
   ngOnInit() {
-    mapboxgl.accessToken = environment.mapbox.accessToken;
     this.map = new mapboxgl.Map({
+      accessToken: environment.mapbox.accessToken,
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v9',
       center: [0, 0],
       zoom: 8,
     });
+
+    this.map.addControl(new mapboxgl.FullscreenControl());
   }
 }
