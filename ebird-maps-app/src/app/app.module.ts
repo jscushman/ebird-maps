@@ -6,6 +6,7 @@ import { MapComponent } from './map/map.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { MatSliderModule } from '@angular/material/slider';
+import { NgxMapboxGLModule } from 'ngx-mapbox-gl';
 
 @NgModule({
   declarations: [AppComponent, MapComponent],
@@ -14,6 +15,7 @@ import { MatSliderModule } from '@angular/material/slider';
     BrowserAnimationsModule,
     FlexLayoutModule,
     MatSliderModule,
+    NgxMapboxGLModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

@@ -1,8 +1,13 @@
 <div fxFill fxLayout="column">
-    <div class="header">
-        <mat-slider min="0" max="7" step="1" value="7"></mat-slider>
-    </div>
     <div fxFlex fxLayout="column" class="body">
-        <div class="map" id="map"></div>
+        <mgl-map [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="[-74.50, 40]"
+            [accessToken]=accessToken>
+            <mgl-control mglGeolocate [positionOptions]="{enableHighAccuracy: true}">
+            </mgl-control>
+        </mgl-map>
+    </div>
+    <div class="footer">
+        <mat-slider min="0" max="7" step="1" value={{days}} (input)="onSliderInput($event)"
+            (change)="onSliderChange($event)"></mat-slider> {{days}} days
     </div>
 </div>

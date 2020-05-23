@@ -22,7 +22,7 @@
     "@angular/platform-browser": "~9.1.9",
     "@angular/platform-browser-dynamic": "~9.1.9",
     "@angular/router": "~9.1.9",
-    "@types/mapbox-gl": "^1.10.2",
+    "@types/mapbox-gl": "^0.51.10",
     "mapbox-gl": "^1.10.1",
     "ngx-mapbox-gl": "^4.5.0",
     "rxjs": "~6.5.4",

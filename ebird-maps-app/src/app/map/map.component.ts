@@ -1,5 +1,6 @@
 import { environment } from '../../environments/environment';
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { MatSliderChange } from '@angular/material/slider';
 import * as mapboxgl from 'mapbox-gl';
 
 @Component({
@@ -7,21 +8,17 @@ import * as mapboxgl from 'mapbox-gl';
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css'],
 })
-export class MapComponent implements OnInit {
-  map: mapboxgl.Map;
+export class MapComponent {
   days = 4;
+  accessToken = environment.mapbox.accessToken;
 
   constructor() {}
 
-  ngOnInit() {
-    this.map = new mapboxgl.Map({
-      accessToken: environment.mapbox.accessToken,
-      container: 'map',
-      style: 'mapbox://styles/mapbox/light-v9',
-      center: [0, 0],
-      zoom: 8,
-    });
+  onSliderInput(e: MatSliderChange) {
+    this.days = e.value;
+  }
 
-    this.map.addControl(new mapboxgl.FullscreenControl());
+  onSliderChange(e: MatSliderChange) {
+    this.days = e.value;
   }
 }
