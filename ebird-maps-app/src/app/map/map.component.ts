@@ -50,17 +50,17 @@ export class MapComponent {
     const radiusPoints = [];
     for (let i = 0; i <= 100; i++) {
       const angle = (2 * Math.PI * i) / 100;
-      const newlat = Math.asin(
+      const newLat = Math.asin(
         Math.sin(latRad) * Math.cos(distanceRadians) +
           Math.cos(latRad) * Math.sin(distanceRadians) * Math.cos(angle)
       );
-      const newlon =
+      const newLon =
         lngRad +
         Math.atan2(
           Math.sin(angle) * Math.sin(distanceRadians) * Math.cos(latRad),
-          Math.cos(distanceRadians) - Math.sin(latRad) * Math.sin(newlat)
+          Math.cos(distanceRadians) - Math.sin(latRad) * Math.sin(newLat)
         );
-      radiusPoints.push([(newlon * 180) / Math.PI, (newlat * 180) / Math.PI]);
+      radiusPoints.push([(newLon * 180) / Math.PI, (newLat * 180) / Math.PI]);
     }
     this.geometry = {
       type: 'Feature',
