@@ -1,7 +1,10 @@
 import { environment } from '../../environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { MatSliderChange } from '@angular/material/slider';
+import { EbirdQueryService } from '../ebird-query.service';
 import * as mapboxgl from 'mapbox-gl';
+import { SightingDetails } from '../ebird_sightings';
+import { DateTime, Duration } from 'luxon';
 
 @Component({
   selector: 'app-map',
@@ -16,7 +19,7 @@ export class MapComponent {
   ebirdSightings: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
 
-  constructor() {}
+  constructor(private ebirdQuery: EbirdQueryService) {}
 
   onSliderChange(e: MatSliderChange) {}
 
@@ -57,6 +60,114 @@ export class MapComponent {
         coordinates: [radiusPoints],
       },
       properties: {},
+    };
+    this.loadSightings();
+  }
+
+  loadSightings() {
+    this.ebirdQuery
+      .getRecentNotableLngLat(
+        this.map.getCenter(),
+        this.days,
+        this.distanceRadius
+      )
+      .subscribe((locationSightings) =>
+        this.processLocationSightings(locationSightings)
+      );
+  }
+
+  processLocationSightings(locationSightings: Map<string, SightingDetails[]>) {
+    const features: GeoJSON.Feature<GeoJSON.Geometry>[] = [];
+    const startOfToday: DateTime = DateTime.local().startOf('day');
+
+    // Plot each location's sightings on the map.
+    locationSightings.forEach((sightings) => {
+      // Sort sightings by date, and filter sightings that are too old.
+      sightings.sort((a: SightingDetails, b: SightingDetails) =>
+        a.dateTime.diff(b.dateTime).valueOf()
+      );
+      sightings = sightings.filter(
+        (a) =>
+          startOfToday.diff(a.dateTime.startOf('day')) <=
+          Duration.fromObject({ days: this.days })
+      );
+
+      // If there are sightings for this location that were not filtered out, build up the display
+      // message.
+      if (sightings.length > 0) {
+        // Calculate the number of days ago that the most recent sighting occured, and get the
+        // timeAgoCategory, which lets us display different colors for different categories.
+        const timeAgoDays: number = startOfToday.diff(
+          sightings[0].dateTime.startOf('day')
+        ).days;
+        const timeAgoCategory: string = (() => {
+          if (timeAgoDays < 1) {
+            return 'today';
+          } else if (timeAgoDays < 2) {
+            return 'yesterday';
+          } else {
+            return 'old';
+          }
+        })();
+
+        // Prepare to build up a list of the species seen in a particular location and a display
+        // message for the popup.
+        interface SpeciesDetails {
+          hasPhoto: boolean;
+        }
+        const speciesSeen: Map<string, SpeciesDetails> = new Map<
+          string,
+          SpeciesDetails
+        >();
+        let description: string = '<h2>' + sightings[0].obs.locName + '</h2>';
+        sightings = sightings.filter(
+          (sighting: SightingDetails, index: number, self: SightingDetails[]) =>
+            index ===
+            self.findIndex(
+              (s) =>
+                s.obs.obsId === sighting.obs.obsId &&
+                s.obs.speciesCode === sighting.obs.speciesCode
+            )
+        );
+        sightings.forEach((sighting: SightingDetails) => {
+          description = sighting.description + '<br>';
+          if (!speciesSeen.has(sighting.obs.comName)) {
+            speciesSeen.set(sighting.obs.comName, {
+              hasPhoto: sighting.obs.hasRichMedia,
+            });
+          } else {
+            speciesSeen.get(sighting.obs.comName).hasPhoto =
+              speciesSeen.get(sighting.obs.comName).hasPhoto ||
+              sighting.obs.hasRichMedia;
+          }
+        });
+
+        // The title that is displayed on the map is a (de-duplicated) list of species.
+        const speciesSeenDisplayName: string[] = [];
+        speciesSeen.forEach((properties, species, map) => {
+          speciesSeenDisplayName.push(
+            species + (properties.hasPhoto ? ' (P)' : '')
+          );
+        });
+        const title: string = [...speciesSeenDisplayName].join(',\n');
+        const newFeature: GeoJSON.Feature<GeoJSON.Geometry> = {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [sightings[0].obs.lng, sightings[0].obs.lat],
+          },
+          properties: {
+            title,
+            description,
+            timeAgoCategory,
+          },
+        };
+        features.push(newFeature);
+      }
+    });
+    this.ebirdSightings = {
+      type: 'FeatureCollection',
+      features,
     };
   }
 }

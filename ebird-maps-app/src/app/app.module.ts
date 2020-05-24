@@ -9,6 +9,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatButtonModule } from '@angular/material/button';
 import { NgxMapboxGLModule } from 'ngx-mapbox-gl';
 import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   declarations: [AppComponent, MapComponent],
@@ -20,6 +21,7 @@ import { FormsModule } from '@angular/forms';
     MatButtonModule,
     NgxMapboxGLModule,
     FormsModule,
+    HttpClientModule,
   ],
   providers: [],
   bootstrap: [AppComponent],
