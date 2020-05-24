@@ -15,20 +15,8 @@ export class MapComponent {
   accessToken = environment.mapbox.accessToken;
   ebirdSightings: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
-  showSightings: boolean;
-  showSearchRadius: boolean;
 
-  constructor() {
-    this.showSightings = false;
-    this.ebirdSightings = {
-      type: 'FeatureCollection',
-      features: [],
-    };
-  }
-
-  onSliderInput(e: MatSliderChange) {
-    this.days = e.value;
-  }
+  constructor() {}
 
   onSliderChange(e: MatSliderChange) {}
 

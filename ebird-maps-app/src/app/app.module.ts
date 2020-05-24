@@ -8,6 +8,7 @@ import { FlexLayoutModule } from '@angular/flex-layout';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatButtonModule } from '@angular/material/button';
 import { NgxMapboxGLModule } from 'ngx-mapbox-gl';
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [AppComponent, MapComponent],
@@ -18,6 +19,7 @@ import { NgxMapboxGLModule } from 'ngx-mapbox-gl';
     MatSliderModule,
     MatButtonModule,
     NgxMapboxGLModule,
+    FormsModule,
   ],
   providers: [],
   bootstrap: [AppComponent],
