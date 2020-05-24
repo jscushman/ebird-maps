@@ -18,6 +18,7 @@ export class MapComponent {
   accessToken = environment.mapbox.accessToken;
   ebirdSightings: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
+  selectedPoint: mapboxgl.MapboxGeoJSONFeature;
 
   constructor(private ebirdQuery: EbirdQueryService) {}
 
@@ -31,6 +32,11 @@ export class MapComponent {
     } else {
       return 'Last ' + days + ' days';
     }
+  }
+
+  onPointsClick(evt: mapboxgl.MapLayerMouseEvent) {
+    this.selectedPoint = evt.features[0];
+    console.log(evt.features);
   }
 
   onLoadClicked() {
@@ -132,7 +138,7 @@ export class MapComponent {
             )
         );
         sightings.forEach((sighting: SightingDetails) => {
-          description = sighting.description + '<br>';
+          description = description + sighting.description + '<br>';
           if (!speciesSeen.has(sighting.obs.comName)) {
             speciesSeen.set(sighting.obs.comName, {
               hasPhoto: sighting.obs.hasRichMedia,

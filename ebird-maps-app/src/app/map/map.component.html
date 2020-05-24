@@ -45,8 +45,12 @@
                     'text-anchor': 'top'
                 }" [paint]="{
                     'icon-color': '#9fcb3b'
-                }">
+                }" (click)="onPointsClick($event)">
                 </mgl-layer>
+                <mgl-popup *ngIf="selectedPoint" className="ebird-location-popup" maxWidth="auto"
+                    [feature]="selectedPoint">
+                    <span [innerHTML]="selectedPoint.properties?.description"></span>
+                </mgl-popup>
             </div>
             <div *ngIf="geometry">
                 <mgl-geojson-source id="searchRadiusPoints" [data]="geometry"></mgl-geojson-source>
