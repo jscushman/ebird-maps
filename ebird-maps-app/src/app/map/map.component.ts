@@ -22,7 +22,13 @@ export class MapComponent {
 
   constructor(private ebirdQuery: EbirdQueryService) {}
 
-  onSliderChange(e: MatSliderChange) {}
+  displaySightings() {
+    this.ebirdQuery
+      .getRecentNotable()
+      .subscribe((locationSightings) =>
+        this.processLocationSightings(locationSightings)
+      );
+  }
 
   getDisplayDays(days: number) {
     if (days === 0) {
@@ -67,25 +73,13 @@ export class MapComponent {
       },
       properties: {},
     };
-    this.loadSightings();
-  }
-
-  loadSightings() {
-    this.ebirdQuery
-      .getRecentNotableLngLat(
-        this.map.getCenter(),
-        this.distanceRadius,
-        this.days
-      )
-      .subscribe((locationSightings) =>
-        this.processLocationSightings(locationSightings)
-      );
+    this.ebirdQuery.loadSightings(this.map.getCenter(), this.distanceRadius);
+    this.displaySightings();
   }
 
   processLocationSightings(locationSightings: Map<string, SightingDetails[]>) {
     const features: GeoJSON.Feature<GeoJSON.Geometry>[] = [];
     const startOfToday: DateTime = DateTime.local().startOf('day');
-
     // Plot each location's sightings on the map.
     locationSightings.forEach((sightings) => {
       // Sort sightings by date, and filter sightings that are too old.

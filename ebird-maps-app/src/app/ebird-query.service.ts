@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, ReplaySubject } from 'rxjs';
 import { Observation, SightingDetails } from './ebird_sightings';
 import * as mapboxgl from 'mapbox-gl';
 import { DateTime } from 'luxon';
@@ -11,32 +10,33 @@ import { DateTime } from 'luxon';
 })
 export class EbirdQueryService {
   private eBirdApiUrl = 'http://localhost:8080/php/call_ebird_api.php';
+  private observations = new ReplaySubject<Map<string, SightingDetails[]>>(1);
 
   constructor(private http: HttpClient) {}
 
-  getRecentNotableLngLat(
-    lngLat: mapboxgl.LngLat,
-    distanceRadius: number,
-    days: number
-  ): Observable<Map<string, SightingDetails[]>> {
+  loadSightings(lngLat: mapboxgl.LngLat, distanceRadius: number) {
     const params = new HttpParams()
       .set('lng', lngLat.lng.toString())
       .set('lat', lngLat.lat.toString())
       .set('back', '7')
       .set('dist', distanceRadius.toString());
-    const observations = this.http.get<Observation[]>(this.eBirdApiUrl, {
-      params,
-    });
-    return observations.pipe(
-      map((o: Observation[]) => {
-        return this.groupRecentNotableByLoc(o);
+    this.http
+      .get<Observation[]>(this.eBirdApiUrl, {
+        params,
       })
-    );
+      .subscribe((o: Observation[]) => {
+        this.observations.next(this.groupRecentNotableByLoc(o));
+      });
   }
 
-  groupRecentNotableByLoc(
+  getRecentNotable(): Observable<Map<string, SightingDetails[]>> {
+    return this.observations.asObservable();
+  }
+
+  private groupRecentNotableByLoc(
     observations: Observation[]
   ): Map<string, SightingDetails[]> {
+    console.log('Grouping!!!');
     const locationSightings = new Map<string, SightingDetails[]>();
     for (const obs of observations) {
       const dateTime = DateTime.fromFormat(obs.obsDt, 'yyyy-LL-dd HH:mm');

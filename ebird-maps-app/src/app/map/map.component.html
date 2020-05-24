@@ -61,8 +61,8 @@
         </mgl-map>
     </div>
     <div class="footer">
-        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value"
-            (change)="onSliderChange($event)"></mat-slider>
+        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value" (change)="displaySightings()">
+        </mat-slider>
         <span>{{getDisplayDays(days)}}</span>
         <button *ngIf="map" mat-stroked-button (click)="onLoadClicked()">Load sightings</button>
     </div>
