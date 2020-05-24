@@ -6,10 +6,9 @@
                 enableHighAccuracy: true
             }">
             </mgl-control>
-            <div *ngIf="ebirdSightings">
-                <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings">
-                </mgl-geojson-source>
-                <mgl-layer id="points" type="circle" source="ebirdSightings" [paint]="{
+            <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings$ | async">
+            </mgl-geojson-source>
+            <mgl-layer id="points" type="circle" source="ebirdSightings" [paint]="{
                     'circle-opacity': {
                         base: 0.0,
                         stops: [
@@ -34,8 +33,8 @@
                         'black'
                     ]
                 }">
-                </mgl-layer>
-                <mgl-layer id="pointsLabels" type="symbol" source="ebirdSightings" [layout]="{
+            </mgl-layer>
+            <mgl-layer id="pointsLabels" type="symbol" source="ebirdSightings" [layout]="{
                     'icon-allow-overlap': true,
                     'icon-image': 'circle-stroked-11',
                     'text-field': '{title}',
@@ -46,12 +45,10 @@
                 }" [paint]="{
                     'icon-color': '#9fcb3b'
                 }" (click)="onPointsClick($event)">
-                </mgl-layer>
-                <mgl-popup *ngIf="selectedPoint" className="ebird-location-popup" maxWidth="auto"
-                    [feature]="selectedPoint">
-                    <span [innerHTML]="selectedPoint.properties?.description"></span>
-                </mgl-popup>
-            </div>
+            </mgl-layer>
+            <mgl-popup *ngIf="selectedPoint" className="ebird-location-popup" maxWidth="auto" [feature]="selectedPoint">
+                <div id="selected-location-popup" [innerHTML]="selectedPoint.properties?.description"></div>
+            </mgl-popup>
             <div *ngIf="geometry">
                 <mgl-geojson-source id="searchRadiusPoints" [data]="geometry"></mgl-geojson-source>
                 <mgl-layer id="searchRadius" type="line" source="searchRadiusPoints" [paint]="{
@@ -61,7 +58,7 @@
         </mgl-map>
     </div>
     <div class="footer">
-        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value" (change)="displaySightings()">
+        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; displaySightings();">
         </mat-slider>
         <span>{{getDisplayDays(days)}}</span>
         <button *ngIf="map" mat-stroked-button (click)="onLoadClicked()">Load sightings</button>

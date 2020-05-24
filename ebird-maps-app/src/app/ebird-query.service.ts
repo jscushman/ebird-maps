@@ -36,7 +36,6 @@ export class EbirdQueryService {
   private groupRecentNotableByLoc(
     observations: Observation[]
   ): Map<string, SightingDetails[]> {
-    console.log('Grouping!!!');
     const locationSightings = new Map<string, SightingDetails[]>();
     for (const obs of observations) {
       const dateTime = DateTime.fromFormat(obs.obsDt, 'yyyy-LL-dd HH:mm');

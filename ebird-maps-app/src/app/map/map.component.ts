@@ -1,10 +1,11 @@
 import { environment } from '../../environments/environment';
 import { Component, OnInit } from '@angular/core';
-import { MatSliderChange } from '@angular/material/slider';
 import { EbirdQueryService } from '../ebird-query.service';
 import * as mapboxgl from 'mapbox-gl';
 import { SightingDetails } from '../ebird_sightings';
 import { DateTime, Duration } from 'luxon';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-map',
@@ -16,17 +17,19 @@ export class MapComponent {
   days = 4;
   distanceRadius = 100;
   accessToken = environment.mapbox.accessToken;
-  ebirdSightings: GeoJSON.FeatureCollection<GeoJSON.Geometry>;
+  ebirdSightings$: Observable<GeoJSON.FeatureCollection<GeoJSON.Geometry>>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
   selectedPoint: mapboxgl.MapboxGeoJSONFeature;
 
   constructor(private ebirdQuery: EbirdQueryService) {}
 
   displaySightings() {
-    this.ebirdQuery
+    this.ebirdSightings$ = this.ebirdQuery
       .getRecentNotable()
-      .subscribe((locationSightings) =>
-        this.processLocationSightings(locationSightings)
+      .pipe(
+        map((locationSightings) =>
+          this.processLocationSightings(locationSightings)
+        )
       );
   }
 
@@ -77,7 +80,9 @@ export class MapComponent {
     this.displaySightings();
   }
 
-  processLocationSightings(locationSightings: Map<string, SightingDetails[]>) {
+  processLocationSightings(
+    locationSightings: Map<string, SightingDetails[]>
+  ): GeoJSON.FeatureCollection<GeoJSON.Geometry> {
     const features: GeoJSON.Feature<GeoJSON.Geometry>[] = [];
     const startOfToday: DateTime = DateTime.local().startOf('day');
     // Plot each location's sightings on the map.
@@ -167,7 +172,7 @@ export class MapComponent {
         features.push(newFeature);
       }
     });
-    this.ebirdSightings = {
+    return {
       type: 'FeatureCollection',
       features,
     };
