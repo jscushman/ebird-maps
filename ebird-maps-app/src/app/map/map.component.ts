@@ -83,8 +83,9 @@ export class MapComponent {
     // Plot each location's sightings on the map.
     locationSightings.forEach((sightings) => {
       // Sort sightings by date, and filter sightings that are too old.
-      sightings.sort((a: SightingDetails, b: SightingDetails) =>
-        a.dateTime.diff(b.dateTime).valueOf()
+      sightings.sort(
+        (a: SightingDetails, b: SightingDetails) =>
+          b.dateTime.diff(a.dateTime).milliseconds
       );
       sightings = sightings.filter(
         (a) =>
