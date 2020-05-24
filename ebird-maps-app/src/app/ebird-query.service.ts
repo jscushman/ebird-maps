@@ -10,7 +10,7 @@ import { DateTime } from 'luxon';
   providedIn: 'root',
 })
 export class EbirdQueryService {
-  private eBirdApiUrl = 'https://ebird.jscushman.com/php/call_ebird_api.php';
+  private eBirdApiUrl = 'http://localhost:8080/php/call_ebird_api.php';
 
   constructor(private http: HttpClient) {}
 
@@ -39,7 +39,7 @@ export class EbirdQueryService {
   ): Map<string, SightingDetails[]> {
     const locationSightings = new Map<string, SightingDetails[]>();
     for (const obs of observations) {
-      const dateTime = DateTime.fromFormat(obs.obsDt, 'YYYY-MM-DD HH:mm');
+      const dateTime = DateTime.fromFormat(obs.obsDt, 'yyyy-LL-dd HH:mm');
       let description =
         '<b><a href="https://ebird.org/species/' +
         obs.speciesCode +

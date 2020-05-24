@@ -68,8 +68,8 @@ export class MapComponent {
     this.ebirdQuery
       .getRecentNotableLngLat(
         this.map.getCenter(),
-        this.days,
-        this.distanceRadius
+        this.distanceRadius,
+        this.days
       )
       .subscribe((locationSightings) =>
         this.processLocationSightings(locationSightings)
@@ -97,9 +97,9 @@ export class MapComponent {
       if (sightings.length > 0) {
         // Calculate the number of days ago that the most recent sighting occured, and get the
         // timeAgoCategory, which lets us display different colors for different categories.
-        const timeAgoDays: number = startOfToday.diff(
-          sightings[0].dateTime.startOf('day')
-        ).days;
+        const timeAgoDays: number = startOfToday
+          .diff(sightings[0].dateTime.startOf('day'))
+          .as('days');
         const timeAgoCategory: string = (() => {
           if (timeAgoDays < 1) {
             return 'today';
@@ -120,6 +120,7 @@ export class MapComponent {
           SpeciesDetails
         >();
         let description: string = '<h2>' + sightings[0].obs.locName + '</h2>';
+        const sightingsLength = sightings.length;
         sightings = sightings.filter(
           (sighting: SightingDetails, index: number, self: SightingDetails[]) =>
             index ===

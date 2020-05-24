@@ -9,7 +9,7 @@
             <div *ngIf="ebirdSightings">
                 <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings">
                 </mgl-geojson-source>
-                <mgl-layer id="points" type="circle" [source]="ebirdSightings" [paint]="{
+                <mgl-layer id="points" type="circle" source="ebirdSightings" [paint]="{
                     'circle-opacity': {
                         base: 0.0,
                         stops: [
@@ -35,7 +35,7 @@
                     ]
                 }">
                 </mgl-layer>
-                <mgl-layer id="pointsLabels" type="symbol" [source]="ebirdSightings" [layout]="{
+                <mgl-layer id="pointsLabels" type="symbol" source="ebirdSightings" [layout]="{
                     'icon-allow-overlap': true,
                     'icon-image': 'circle-stroked-11',
                     'text-field': '{title}',
