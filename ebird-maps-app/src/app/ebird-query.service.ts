@@ -9,7 +9,7 @@ import { DateTime } from 'luxon';
   providedIn: 'root',
 })
 export class EbirdQueryService {
-  private eBirdApiUrl = 'http://localhost:8080/php/call_ebird_api.php';
+  private eBirdApiUrl = 'https://api.jscushman.com/call_ebird_api.php';
   private observations = new ReplaySubject<Map<string, SightingDetails[]>>(1);
 
   constructor(private http: HttpClient) {}
