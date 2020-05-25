@@ -1,10 +1,21 @@
 <div fxFill fxLayout="column">
     <div fxFlex fxLayout="column" class="body">
-        <mgl-map [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="[-74.50, 40]"
-            [accessToken]=accessToken (load)="map = $event">
-            <mgl-control mglGeolocate [positionOptions]="{
-                enableHighAccuracy: true
-            }">
+        <mgl-map *ngIf="home" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home"
+            [accessToken]=accessToken (load)="onMapLoad($event)">
+            <mgl-control>
+                <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; displaySightings();">
+                </mat-slider>
+                <span>{{getDisplayDays(days)}}</span>
+            </mgl-control>
+            <mgl-control>
+                <button mat-mini-fab color="primary" (click)="goHome()">
+                    <mat-icon>home</mat-icon>
+                </button>
+            </mgl-control>
+            <mgl-control>
+                <button *ngIf="loaded" mat-mini-fab color="primary" (click)="onReloadSightings()">
+                    <mat-icon>refresh</mat-icon>
+                </button>
             </mgl-control>
             <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings$ | async">
             </mgl-geojson-source>
@@ -56,11 +67,5 @@
                 }"></mgl-layer>
             </div>
         </mgl-map>
-    </div>
-    <div class="footer">
-        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; displaySightings();">
-        </mat-slider>
-        <span>{{getDisplayDays(days)}}</span>
-        <button *ngIf="map" mat-stroked-button (click)="onLoadClicked()">Load sightings</button>
     </div>
 </div>

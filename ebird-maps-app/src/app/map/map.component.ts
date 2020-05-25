@@ -4,7 +4,7 @@ import { EbirdQueryService } from '../ebird-query.service';
 import * as mapboxgl from 'mapbox-gl';
 import { SightingDetails } from '../ebird_sightings';
 import { DateTime, Duration } from 'luxon';
-import { Observable } from 'rxjs';
+import { Observable, ReplaySubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Component({
@@ -12,16 +12,33 @@ import { map } from 'rxjs/operators';
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css'],
 })
-export class MapComponent {
+export class MapComponent implements OnInit {
   map: mapboxgl.Map;
   days = 4;
   distanceRadius = 100;
+  loaded = false;
   accessToken = environment.mapbox.accessToken;
   ebirdSightings$: Observable<GeoJSON.FeatureCollection<GeoJSON.Geometry>>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
   selectedPoint: mapboxgl.MapboxGeoJSONFeature;
+  home: mapboxgl.LngLat;
 
   constructor(private ebirdQuery: EbirdQueryService) {}
+
+  ngOnInit() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lng = position.coords.longitude;
+        const lat = position.coords.latitude;
+        this.home = new mapboxgl.LngLat(lng, lat);
+      });
+    }
+  }
+
+  onMapLoad(event: mapboxgl.Map) {
+    this.map = event;
+    this.goHome();
+  }
 
   displaySightings() {
     this.ebirdSightings$ = this.ebirdQuery
@@ -45,11 +62,23 @@ export class MapComponent {
 
   onPointsClick(evt: mapboxgl.MapLayerMouseEvent) {
     this.selectedPoint = evt.features[0];
-    console.log(evt.features);
   }
 
-  onLoadClicked() {
-    const center: mapboxgl.LngLat = this.map.getCenter();
+  goHome() {
+    if (this.map) {
+      this.map.jumpTo({ center: this.home });
+      this.loadSightings(this.home);
+    }
+  }
+
+  onReloadSightings() {
+    if (this.map) {
+      this.loadSightings(this.map.getCenter());
+    }
+  }
+
+  loadSightings(center: mapboxgl.LngLat) {
+    this.loaded = false;
     const lngRad = (center.lng * Math.PI) / 180;
     const latRad = (center.lat * Math.PI) / 180;
     const distanceRadians = this.distanceRadius / 6356;
@@ -172,6 +201,7 @@ export class MapComponent {
         features.push(newFeature);
       }
     });
+    this.loaded = true;
     return {
       type: 'FeatureCollection',
       features,
