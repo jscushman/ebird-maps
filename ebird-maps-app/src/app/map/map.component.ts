@@ -32,6 +32,8 @@ export class MapComponent implements OnInit {
         const lat = position.coords.latitude;
         this.home = new mapboxgl.LngLat(lng, lat);
       });
+    } else {
+      this.home = new mapboxgl.LngLat(0, 0);
     }
   }
 
