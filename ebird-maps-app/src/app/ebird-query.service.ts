@@ -9,7 +9,8 @@ import { DateTime } from 'luxon';
   providedIn: 'root',
 })
 export class EbirdQueryService {
-  private eBirdApiUrl = 'https://ibs5x0hytc.execute-api.us-east-1.amazonaws.com/default/queryRecentNearbyNotableEbirdApi';
+  private eBirdApiUrl =
+    'https://ibs5x0hytc.execute-api.us-east-1.amazonaws.com/default/queryRecentNearbyNotableEbirdApi';
   private observations = new ReplaySubject<Map<string, SightingDetails[]>>(1);
 
   constructor(private http: HttpClient) {}
