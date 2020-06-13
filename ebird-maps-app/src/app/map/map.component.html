@@ -1,22 +1,20 @@
 <p *ngIf="!home">Getting your location...</p>
 <mgl-map *ngIf="home" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home" [accessToken]=accessToken
     (load)="onMapLoad($event)">
-    <mgl-control position="bottom-right">
-        <span>{{getDisplayDays(days)}} </span>
-        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; onDaysUpdate();">
-        </mat-slider>
-    </mgl-control>
     <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
     </mgl-control>
     <mgl-control>
-        <button mat-mini-fab color="primary" (click)="goHome()">
-            <mat-icon>home</mat-icon>
-        </button>
+        <span>{{getDisplayDays(days)}} </span>
+        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; onDaysUpdate();">
+        </mat-slider>
     </mgl-control>
     <mgl-control>
         <button *ngIf="loaded" mat-mini-fab color="primary" (click)="onReloadSightings()">
             <mat-icon>refresh</mat-icon>
         </button>
+    </mgl-control>
+    <mgl-control mglGeolocate position="bottom-right" [positionOptions]="{ enableHighAccuracy: true }"
+        [trackUserLocation]="true">
     </mgl-control>
     <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings$ | async">
     </mgl-geojson-source>
