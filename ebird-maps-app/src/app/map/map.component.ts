@@ -16,33 +16,37 @@ export class MapComponent implements OnInit {
   map: mapboxgl.Map;
   days = 4;
   distanceRadius = 100;
-  loaded = false;
   accessToken = environment.mapbox.accessToken;
   ebirdSightings$: Observable<GeoJSON.FeatureCollection<GeoJSON.Geometry>>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
   selectedPoint: mapboxgl.MapboxGeoJSONFeature;
   home: mapboxgl.LngLat;
+  loaded = false;
 
   constructor(private ebirdQuery: EbirdQueryService) {}
 
   ngOnInit() {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const lng = position.coords.longitude;
-        const lat = position.coords.latitude;
-        this.home = new mapboxgl.LngLat(lng, lat);
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lng = position.coords.longitude;
+          const lat = position.coords.latitude;
+          this.home = new mapboxgl.LngLat(lng, lat);
+        },
+        (error) => {
+          this.home = new mapboxgl.LngLat(-71.06, 42.35);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        }
+      );
     } else {
-      this.home = new mapboxgl.LngLat(0, 0);
+      console.log('Geolocation unavailable.');
+      this.home = new mapboxgl.LngLat(-71.06, 42.35);
     }
-  }
 
-  onMapLoad(event: mapboxgl.Map) {
-    this.map = event;
-    this.goHome();
-  }
-
-  displaySightings() {
     this.ebirdSightings$ = this.ebirdQuery
       .getRecentNotable()
       .pipe(
@@ -50,6 +54,11 @@ export class MapComponent implements OnInit {
           this.processLocationSightings(locationSightings)
         )
       );
+  }
+
+  onMapLoad(event: mapboxgl.Map) {
+    this.map = event;
+    this.goHome();
   }
 
   getDisplayDays(days: number) {
@@ -79,8 +88,21 @@ export class MapComponent implements OnInit {
     }
   }
 
+  onGeocodingResult(event) {
+    const center = event.result.center;
+    const latlng = new mapboxgl.LngLat(center[0], center[1]);
+    this.map.jumpTo({ center: latlng });
+    this.loadSightings(latlng);
+  }
+
+  setLoaded(isLoaded) {
+    setTimeout(() => {
+      this.loaded = isLoaded;
+    });
+  }
+
   loadSightings(center: mapboxgl.LngLat) {
-    this.loaded = false;
+    this.setLoaded(false);
     const lngRad = (center.lng * Math.PI) / 180;
     const latRad = (center.lat * Math.PI) / 180;
     const distanceRadians = this.distanceRadius / 6356;
@@ -108,7 +130,10 @@ export class MapComponent implements OnInit {
       properties: {},
     };
     this.ebirdQuery.loadSightings(this.map.getCenter(), this.distanceRadius);
-    this.displaySightings();
+  }
+
+  onDaysUpdate() {
+    this.ebirdQuery.reemitObservations();
   }
 
   processLocationSightings(
@@ -203,7 +228,7 @@ export class MapComponent implements OnInit {
         features.push(newFeature);
       }
     });
-    this.loaded = true;
+    this.setLoaded(true);
     return {
       type: 'FeatureCollection',
       features,

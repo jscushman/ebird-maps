@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, ReplaySubject } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { Observation, SightingDetails } from './ebird_sightings';
 import * as mapboxgl from 'mapbox-gl';
 import { DateTime } from 'luxon';
@@ -11,7 +11,9 @@ import { DateTime } from 'luxon';
 export class EbirdQueryService {
   private eBirdApiUrl =
     'https://ibs5x0hytc.execute-api.us-east-1.amazonaws.com/default/queryRecentNearbyNotableEbirdApi';
-  private observations = new ReplaySubject<Map<string, SightingDetails[]>>(1);
+  private observations = new BehaviorSubject<Map<string, SightingDetails[]>>(
+    new Map<string, SightingDetails[]>()
+  );
 
   constructor(private http: HttpClient) {}
 
@@ -32,6 +34,10 @@ export class EbirdQueryService {
 
   getRecentNotable(): Observable<Map<string, SightingDetails[]>> {
     return this.observations.asObservable();
+  }
+
+  reemitObservations() {
+    this.observations.next(this.observations.value);
   }
 
   private groupRecentNotableByLoc(
