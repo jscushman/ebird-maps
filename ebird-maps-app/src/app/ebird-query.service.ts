@@ -49,6 +49,8 @@ export class EbirdQueryService {
       let description =
         '<b><a href="https://ebird.org/species/' +
         obs.speciesCode +
+        '/' +
+        obs.subnational2Code +
         '" target="_blank">' +
         obs.comName +
         '</a>' +
@@ -73,7 +75,7 @@ export class EbirdQueryService {
           'by ' +
           obs.userDisplayName +
           (obs.obsReviewed ? '' : ' (UNCONFIRMED)') +
-          (obs.hasRichMedia ? ' (with photo)' : '');
+          (obs.hasRichMedia ? ' (with media)' : '');
       }
       const sighting: SightingDetails = {
         obs,

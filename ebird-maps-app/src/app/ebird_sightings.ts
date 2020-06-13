@@ -11,6 +11,7 @@ export interface Observation {
   lng: number;
   lat: number;
   subId: string;
+  subnational2Code: string;
   userDisplayName?: string;
   obsReviewed?: boolean;
   hasRichMedia?: boolean;

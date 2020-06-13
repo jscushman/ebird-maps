@@ -175,7 +175,8 @@ export class MapComponent implements OnInit {
         // Prepare to build up a list of the species seen in a particular location and a display
         // message for the popup.
         interface SpeciesDetails {
-          hasPhoto: boolean;
+          hasMedia: boolean;
+          isConfirmed: boolean;
         }
         const speciesSeen: Map<string, SpeciesDetails> = new Map<
           string,
@@ -196,12 +197,16 @@ export class MapComponent implements OnInit {
           description = description + sighting.description + '<br>';
           if (!speciesSeen.has(sighting.obs.comName)) {
             speciesSeen.set(sighting.obs.comName, {
-              hasPhoto: sighting.obs.hasRichMedia,
+              hasMedia: sighting.obs.hasRichMedia,
+              isConfirmed: sighting.obs.obsReviewed,
             });
           } else {
-            speciesSeen.get(sighting.obs.comName).hasPhoto =
-              speciesSeen.get(sighting.obs.comName).hasPhoto ||
+            speciesSeen.get(sighting.obs.comName).hasMedia =
+              speciesSeen.get(sighting.obs.comName).hasMedia ||
               sighting.obs.hasRichMedia;
+            speciesSeen.get(sighting.obs.comName).isConfirmed =
+              speciesSeen.get(sighting.obs.comName).isConfirmed ||
+              sighting.obs.obsReviewed;
           }
         });
 
@@ -209,7 +214,9 @@ export class MapComponent implements OnInit {
         const speciesSeenDisplayName: string[] = [];
         speciesSeen.forEach((properties, species, map) => {
           speciesSeenDisplayName.push(
-            species + (properties.hasPhoto ? ' (P)' : '')
+            species +
+              (properties.isConfirmed ? '' : '?') +
+              (properties.hasMedia ? '*' : '')
           );
         });
         const title: string = [...speciesSeenDisplayName].join(',\n');
