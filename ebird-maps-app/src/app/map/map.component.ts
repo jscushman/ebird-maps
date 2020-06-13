@@ -4,7 +4,7 @@ import { EbirdQueryService } from '../ebird-query.service';
 import * as mapboxgl from 'mapbox-gl';
 import { SightingDetails } from '../ebird_sightings';
 import { DateTime, Duration } from 'luxon';
-import { Observable, ReplaySubject } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Component({
