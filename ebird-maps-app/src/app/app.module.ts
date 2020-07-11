@@ -13,9 +13,10 @@ import { HttpClientModule } from '@angular/common/http';
 import { AppRoutingModule } from './app-routing.module';
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { CountiesComponent } from './counties/counties.component';
 
 @NgModule({
-  declarations: [AppComponent, MapComponent],
+  declarations: [AppComponent, MapComponent, CountiesComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,

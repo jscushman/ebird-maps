@@ -212,7 +212,7 @@ export class MapComponent implements OnInit {
 
         // The title that is displayed on the map is a (de-duplicated) list of species.
         const speciesSeenDisplayName: string[] = [];
-        speciesSeen.forEach((properties, species, map) => {
+        speciesSeen.forEach((properties, species, _) => {
           speciesSeenDisplayName.push(
             species +
               (properties.isConfirmed ? '' : '?') +
