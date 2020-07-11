@@ -1,68 +1,72 @@
-<p *ngIf="!home">Getting your location...</p>
-<mgl-map *ngIf="home" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home" [accessToken]=accessToken
-    (load)="onMapLoad($event)">
-    <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
-    </mgl-control>
-    <mgl-control>
-        <span>{{getDisplayDays(days)}} </span>
-        <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; onDaysUpdate();">
-        </mat-slider>
-    </mgl-control>
-    <mgl-control>
-        <button *ngIf="loaded" mat-mini-fab color="primary" (click)="onReloadSightings()">
-            <mat-icon>refresh</mat-icon>
-        </button>
-    </mgl-control>
-    <mgl-control mglGeolocate position="bottom-right" [positionOptions]="{ enableHighAccuracy: true }"
-        [trackUserLocation]="true">
-    </mgl-control>
-    <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings$ | async">
-    </mgl-geojson-source>
-    <mgl-layer id="points" type="circle" source="ebirdSightings" [paint]="{
-            'circle-opacity': {
-                base: 0.0,
-                stops: [
-                    [8, 0.5],
-                    [12, 0.5],
-                    [13, 1.0]
-                ]
-            },
-            'circle-radius': {
-                base: 2,
-                stops: [
-                    [8, 2],
-                    [11, 6],
-                    [22, 180]
-                ]
-            },
-            'circle-color': [
-                'match', ['get', 'timeAgoCategory'],
-                'today', 'green',
-                'yesterday', 'orange',
-                'old', 'red',
-                'black'
-            ]
-        }">
-    </mgl-layer>
-    <mgl-layer id="pointsLabels" type="symbol" source="ebirdSightings" [layout]="{
-            'icon-allow-overlap': true,
-            'icon-image': 'circle-stroked-11',
-            'text-field': '{title}',
-            'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-offset': [0, 0.6],
-            'text-size': 12,
-            'text-anchor': 'top'
-        }" [paint]="{
-            'icon-color': '#9fcb3b'
-        }" (click)="onPointsClick($event)">
-    </mgl-layer>
-    <mgl-popup *ngIf="selectedPoint" className="ebird-location-popup" maxWidth="auto" [feature]="selectedPoint">
-        <div id="selected-location-popup" [innerHTML]="selectedPoint.properties?.description"></div>
-    </mgl-popup>
-    <div *ngIf="geometry">
-        <mgl-geojson-source id="searchRadiusPoints" [data]="geometry"></mgl-geojson-source>
-        <mgl-layer id="searchRadius" type="line" source="searchRadiusPoints" [paint]="{
-            'line-opacity': 0.5
-        }"></mgl-layer>
-    </div>
-</mgl-map>
+<mat-card>
+    <mat-card-content style="height: 100%">
+        <p *ngIf="!home">Getting your location...</p>
+        <mgl-map *ngIf="home" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home"
+            [accessToken]=accessToken (load)="onMapLoad($event)">
+            <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
+            </mgl-control>
+            <mgl-control>
+                <span>{{getDisplayDays(days)}} </span>
+                <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; onDaysUpdate();">
+                </mat-slider>
+            </mgl-control>
+            <mgl-control>
+                <button *ngIf="loaded" mat-mini-fab color="primary" (click)="onReloadSightings()">
+                    <mat-icon>refresh</mat-icon>
+                </button>
+            </mgl-control>
+            <mgl-control mglGeolocate position="bottom-right" [positionOptions]="{ enableHighAccuracy: true }"
+                [trackUserLocation]="true">
+            </mgl-control>
+            <mgl-geojson-source id="ebirdSightings" [data]="ebirdSightings$ | async">
+            </mgl-geojson-source>
+            <mgl-layer id="points" type="circle" source="ebirdSightings" [paint]="{
+                    'circle-opacity': {
+                        base: 0.0,
+                        stops: [
+                            [8, 0.5],
+                            [12, 0.5],
+                            [13, 1.0]
+                        ]
+                    },
+                    'circle-radius': {
+                        base: 2,
+                        stops: [
+                            [8, 2],
+                            [11, 6],
+                            [22, 180]
+                        ]
+                    },
+                    'circle-color': [
+                        'match', ['get', 'timeAgoCategory'],
+                        'today', 'green',
+                        'yesterday', 'orange',
+                        'old', 'red',
+                        'black'
+                    ]
+                }">
+            </mgl-layer>
+            <mgl-layer id="pointsLabels" type="symbol" source="ebirdSightings" [layout]="{
+                    'icon-allow-overlap': true,
+                    'icon-image': 'circle-stroked-11',
+                    'text-field': '{title}',
+                    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                    'text-offset': [0, 0.6],
+                    'text-size': 12,
+                    'text-anchor': 'top'
+                }" [paint]="{
+                    'icon-color': '#9fcb3b'
+                }" (click)="onPointsClick($event)">
+            </mgl-layer>
+            <mgl-popup *ngIf="selectedPoint" className="ebird-location-popup" maxWidth="auto" [feature]="selectedPoint">
+                <div id="selected-location-popup" [innerHTML]="selectedPoint.properties?.description"></div>
+            </mgl-popup>
+            <div *ngIf="geometry">
+                <mgl-geojson-source id="searchRadiusPoints" [data]="geometry"></mgl-geojson-source>
+                <mgl-layer id="searchRadius" type="line" source="searchRadiusPoints" [paint]="{
+                    'line-opacity': 0.5
+                }"></mgl-layer>
+            </div>
+        </mgl-map>
+    </mat-card-content>
+</mat-card>

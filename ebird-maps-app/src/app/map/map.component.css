@@ -3,6 +3,11 @@ mgl-map {
   width: 100%;
 }
 
+mat-card {
+  height: calc(100% - 64px);
+  box-sizing: border-box;
+}
+
 #selected-location-popup {
   overflow-y: scroll;
   max-height: 400px;
