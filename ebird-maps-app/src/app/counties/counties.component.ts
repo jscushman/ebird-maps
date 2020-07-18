@@ -63,6 +63,24 @@ export class CountiesComponent implements OnInit {
       .data(topojson.feature(us, us.objects.counties).features)
       .enter()
       .append('path')
+      .attr('fill', (d) => {
+        return 'none';
+      })
+      .attr('stroke', (d) => {
+        return 'lightgray';
+      })
+      .attr('d', path);
+
+    svg
+      .append('path')
+      .attr('fill', (d) => {
+        return 'none';
+      })
+      .attr('stroke', (d) => {
+        return '#aaa';
+      })
+      .datum(topojson.mesh(us, us.objects.states))
+      .attr('class', 'states')
       .attr('d', path);
   }
 }
