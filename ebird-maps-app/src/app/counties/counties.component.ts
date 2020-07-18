@@ -65,8 +65,8 @@ export class CountiesComponent implements OnInit {
 
     forkJoin([this.speciesPerCounty$, this.countyFipsCodes$]).subscribe(
       ([speciesPerCounty, countyFipsCodes]) => {
-        const us: Topology<CountiesData> = require('../../../node_modules/us-atlas/counties-albers-10m.json');
-
+        // Calculate number of species per county, indexed by FIPS code, and compute the maximum
+        // value for the color scale.
         const sightings = new Map<string, number>();
         let maxNumSpecies = 0;
         for (const [county, speciesSet] of speciesPerCounty.entries()) {
@@ -77,10 +77,13 @@ export class CountiesComponent implements OnInit {
           }
         }
 
+        // Load the US topology.
+        const us: Topology<CountiesData> = require('../../../node_modules/us-atlas/counties-albers-10m.json');
+
+        // Draw the map. Shade each county by the number of species in the county.
         const colorScale = d3
           .scaleSequential(d3.interpolateYlOrRd)
           .domain([0, maxNumSpecies]);
-
         const path = d3.geoPath();
         const svg = d3.select('svg');
         svg
@@ -106,6 +109,7 @@ export class CountiesComponent implements OnInit {
               : '';
           });
 
+        // Draw state outlines.
         svg
           .append('path')
           .attr('fill', (d) => {
@@ -117,7 +121,76 @@ export class CountiesComponent implements OnInit {
           .datum(topojson.mesh(us, us.objects.states))
           .attr('class', 'states')
           .attr('d', path);
+
+        // Draw legend.
+        this.drawLegend(maxNumSpecies);
       }
     );
+  }
+
+  drawLegend(maxNumSpecies: number) {
+    const svg = d3.select('svg');
+    const gLegend = svg
+      .append('g')
+      .attr('class', 'key')
+      .attr('transform', 'translate(0,40)');
+
+    const legendWidth = 260;
+    const legendDivisions = 50;
+    const legendSectionWidth = Math.floor(legendWidth / legendDivisions);
+
+    const legendLocations = [];
+    for (let i = 0; i < legendWidth; i += legendSectionWidth) {
+      legendLocations.push(i);
+    }
+
+    const legendColorScale = d3
+      .scaleSequential(d3.interpolateYlOrRd)
+      .domain([0, legendDivisions]);
+
+    const axisScale = d3
+      .scaleLinear()
+      .domain([0, 100])
+      .rangeRound([600, 600 + legendWidth]);
+
+    gLegend
+      .selectAll('rect')
+      .data(legendLocations)
+      .enter()
+      .append('rect')
+      .attr('height', 8)
+      .attr('x', (d, i) => {
+        return axisScale.range()[0] + legendSectionWidth * i;
+      })
+      .attr('width', (d, i) => {
+        return legendSectionWidth;
+      })
+      .attr('fill', (d, i) => {
+        return legendColorScale(i);
+      });
+
+    gLegend
+      .append('text')
+      .attr('class', 'caption')
+      .attr('x', axisScale.range()[0])
+      .attr('y', -6)
+      .attr('fill', '#000')
+      .attr('text-anchor', 'start')
+      .attr('font-weight', 'bold')
+      .text('Species per county');
+
+    const ticks = 5;
+    gLegend
+      .call(
+        d3
+          .axisBottom(axisScale)
+          .tickSize(13)
+          .tickFormat((x, i) => {
+            return ((i * maxNumSpecies) / (ticks - 1)).toString();
+          })
+          .tickValues([0, 25, 50, 75, 100])
+      )
+      .select('.domain')
+      .remove();
   }
 }
