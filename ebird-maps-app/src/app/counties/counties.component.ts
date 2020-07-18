@@ -16,6 +16,28 @@ export interface CountiesData extends Objects<Properties> {
   counties: GeometryCollection<GeometryObject<Properties>>;
 }
 
+export class CountySpeciesList {
+  county: string;
+  state: string;
+  speciesSet: Set<string>;
+
+  constructor(county: string, state: string) {
+    this.county = county;
+    this.state = state;
+    this.speciesSet = new Set<string>();
+  }
+}
+
+export class CountySpeciesCount {
+  county: string;
+  speciesCount: number;
+
+  constructor(county: string, speciesCount: number) {
+    this.county = county;
+    this.speciesCount = speciesCount;
+  }
+}
+
 export class Sighting {
   scientificName: string;
   state: string;
@@ -34,7 +56,7 @@ export class Sighting {
   styleUrls: ['./counties.component.css'],
 })
 export class CountiesComponent implements OnInit {
-  speciesPerCounty$: Observable<Map<string, Set<string>>>;
+  speciesPerCounty$: Observable<Map<string, CountySpeciesList>>;
   countyFipsCodes$: Observable<Map<string, string>>;
 
   constructor(private http: HttpClient) {}
@@ -44,16 +66,31 @@ export class CountiesComponent implements OnInit {
       .get('assets/MyEBirdData.csv', { responseType: 'text' })
       .pipe(
         map((data) => {
-          const speciesPerCounty = new Map<string, Set<string>>();
+          const speciesPerCounty = new Map<string, CountySpeciesList>();
           const csvToRowArray: string[] = data.split('\n');
           for (let index = 1; index < csvToRowArray.length - 1; index++) {
             const row: string[] = csvToRowArray[index].split(',');
-            const speciesName = row[2];
-            const countyId = row[5] + row[6];
-            if (!speciesPerCounty.has(countyId)) {
-              speciesPerCounty.set(countyId, new Set<string>());
+            const speciesRowName = row[2];
+            if (
+              speciesRowName.includes('sp.') ||
+              speciesRowName.includes(' x ') ||
+              speciesRowName.includes('(Domestic type)')
+            ) {
+              continue;
             }
-            speciesPerCounty.get(countyId).add(speciesName);
+            const speciesName = speciesRowName.split(' ').slice(0, 2).join(' ');
+            if (speciesName.includes('/')) {
+              continue;
+            }
+            const county = row[6];
+            const state = row[5];
+            if (!speciesPerCounty.has(state + county)) {
+              speciesPerCounty.set(
+                state + county,
+                new CountySpeciesList(county, state)
+              );
+            }
+            speciesPerCounty.get(state + county).speciesSet.add(speciesName);
           }
           return speciesPerCounty;
         })
@@ -67,11 +104,14 @@ export class CountiesComponent implements OnInit {
       ([speciesPerCounty, countyFipsCodes]) => {
         // Calculate number of species per county, indexed by FIPS code, and compute the maximum
         // value for the color scale.
-        const sightings = new Map<string, number>();
+        const sightings = new Map<string, CountySpeciesCount>();
         let maxNumSpecies = 0;
-        for (const [county, speciesSet] of speciesPerCounty.entries()) {
-          const numSpecies = speciesSet.size;
-          sightings.set(countyFipsCodes[county], numSpecies);
+        for (const [county, countySpecies] of speciesPerCounty.entries()) {
+          const numSpecies = countySpecies.speciesSet.size;
+          sightings.set(
+            countyFipsCodes[countySpecies.state + countySpecies.county],
+            new CountySpeciesCount(countySpecies.county, numSpecies)
+          );
           if (numSpecies > maxNumSpecies) {
             maxNumSpecies = numSpecies;
           }
@@ -95,17 +135,21 @@ export class CountiesComponent implements OnInit {
           .append('path')
           .attr('fill', (d) => {
             return sightings.has(d.id.toString())
-              ? colorScale(sightings.get(d.id.toString()))
+              ? colorScale(sightings.get(d.id.toString()).speciesCount)
               : 'none';
           })
           .attr('stroke', (d) => {
             return sightings.has(d.id.toString()) ? 'lightgray' : 'none';
           })
+          .attr('stroke-width', 0.3)
           .attr('d', path)
           .append('title')
           .text((d) => {
+            const countySpeciesCount = sightings.get(d.id.toString());
             return sightings.has(d.id.toString())
-              ? 'County' + ': ' + sightings.get(d.id.toString())
+              ? countySpeciesCount.county +
+                  ': ' +
+                  countySpeciesCount.speciesCount
               : '';
           });
 
