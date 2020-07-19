@@ -1,21 +1,56 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
-import {
-  GeometryObject,
-  GeometryCollection,
-  Topology,
-  Objects,
-  Properties,
-} from 'topojson-specification';
 import { HttpClient } from '@angular/common/http';
 import { Observable, combineLatest, fromEvent } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 
-export interface CountiesData extends Objects<Properties> {
-  counties: GeometryCollection<GeometryObject<Properties>>;
+import * as GeoJSON from 'geojson';
+
+// Generic TopoJSON types.
+
+export interface TopoJSON {
+  type: 'Topology' | GeoJSON.GeoJsonGeometryTypes | null;
+  bbox?: GeoJSON.BBox;
+}
+
+export interface Topology<
+  T extends Objects<GeoJSON.GeoJsonProperties> = Objects<
+    GeoJSON.GeoJsonProperties
+  >
+> extends TopoJSON {
+  type: 'Topology';
+  objects: T;
+  arcs: number[][][];
+}
+
+export interface Objects<P extends GeoJSON.GeoJsonProperties = {}> {
+  [key: string]: GeometryObject<P>;
+}
+
+export interface GeometryObjectA<P extends GeoJSON.GeoJsonProperties = {}>
+  extends TopoJSON {
+  type: GeoJSON.GeoJsonGeometryTypes | null;
+  id?: number | string;
+  properties?: P;
+}
+
+export type GeometryObject<
+  P extends GeoJSON.GeoJsonProperties = {}
+> = GeometryCollection<P>;
+
+export interface GeometryCollection<P extends GeoJSON.GeoJsonProperties = {}>
+  extends GeometryObjectA<P> {
+  type: 'GeometryCollection';
+  geometries: Array<GeometryObject<P>>;
+}
+
+// Specific types for this county map.
+
+export interface CountiesData extends Objects<GeoJSON.GeoJsonProperties> {
+  counties: GeometryCollection<GeometryObject<GeoJSON.GeoJsonProperties>>;
 }
 
 export class CountySpeciesList {
