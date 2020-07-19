@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import {
@@ -11,6 +11,8 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
 
 export interface CountiesData extends Objects<Properties> {
   counties: GeometryCollection<GeometryObject<Properties>>;
@@ -38,6 +40,18 @@ export class CountySpeciesCount {
   }
 }
 
+export class CountyDisplayRow {
+  county: string;
+  state: string;
+  speciesCount: number;
+
+  constructor(county: string, state: string, speciesCount: number) {
+    this.county = county;
+    this.state = state;
+    this.speciesCount = speciesCount;
+  }
+}
+
 export class Sighting {
   scientificName: string;
   state: string;
@@ -57,7 +71,11 @@ export class Sighting {
 })
 export class CountiesComponent implements OnInit {
   speciesPerCounty$: Observable<Map<string, CountySpeciesList>>;
+  speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow[]>>;
   countyFipsCodes$: Observable<Map<string, string>>;
+  stateAbbreviations$: Observable<Map<string, string>>;
+
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
 
   constructor(private http: HttpClient) {}
 
@@ -99,6 +117,40 @@ export class CountiesComponent implements OnInit {
     this.countyFipsCodes$ = this.http.get('assets/fips_codes.json', {
       responseType: 'json',
     }) as Observable<Map<string, string>>;
+
+    this.stateAbbreviations$ = this.http.get(
+      'assets/state_abbreviations.json',
+      {
+        responseType: 'json',
+      }
+    ) as Observable<Map<string, string>>;
+
+    this.speciesPerCountyTable$ = forkJoin([
+      this.speciesPerCounty$,
+      this.stateAbbreviations$,
+    ]).pipe(
+      map(([speciesPerCounty, stateAbbreviations]) => {
+        const tableEntries = [];
+        for (const countySpecies of speciesPerCounty.values()) {
+          const numSpecies = countySpecies.speciesSet.size;
+          if (countySpecies.county !== '') {
+            tableEntries.push(
+              new CountyDisplayRow(
+                countySpecies.county,
+                countySpecies.state in stateAbbreviations
+                  ? stateAbbreviations[countySpecies.state]
+                  : countySpecies.state,
+                numSpecies
+              )
+            );
+          }
+        }
+        tableEntries.sort((a, b) => (a.speciesCount < b.speciesCount ? 1 : -1));
+        const dataSource = new MatTableDataSource(tableEntries);
+        dataSource.sort = this.sort;
+        return dataSource;
+      })
+    );
 
     forkJoin([this.speciesPerCounty$, this.countyFipsCodes$]).subscribe(
       ([speciesPerCounty, countyFipsCodes]) => {

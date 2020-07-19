@@ -1,1 +1,28 @@
-<svg width="960" height="600"></svg>
+<mat-card style="width: 960px;">
+    <mat-card-content>
+        <svg width="100%" height="600"></svg>
+    </mat-card-content>
+</mat-card>
+<mat-card style="width: 960px;">
+    <mat-card-header>
+        <mat-card-title>Species by County</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <table mat-table [dataSource]="speciesPerCountyTable$ | async" matSort>
+            <ng-container matColumnDef="county">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>County</th>
+                <td mat-cell *matCellDef="let element">{{element.county}}</td>
+            </ng-container>
+            <ng-container matColumnDef="state">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
+                <td mat-cell *matCellDef="let element">{{element.state}}</td>
+            </ng-container>
+            <ng-container matColumnDef="speciesCount">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Species Count</th>
+                <td mat-cell *matCellDef="let element">{{element.speciesCount}}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="['county', 'state', 'speciesCount']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['county', 'state', 'speciesCount'];"></tr>
+        </table>
+    </mat-card-content>
+</mat-card>

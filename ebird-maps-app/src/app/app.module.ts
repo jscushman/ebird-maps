@@ -14,6 +14,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { CountiesComponent } from './counties/counties.component';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 
 @NgModule({
   declarations: [AppComponent, MapComponent, CountiesComponent],
@@ -30,6 +32,8 @@ import { CountiesComponent } from './counties/counties.component';
     AppRoutingModule,
     MatCardModule,
     MatToolbarModule,
+    MatTableModule,
+    MatSortModule,
   ],
   providers: [],
   bootstrap: [AppComponent],
