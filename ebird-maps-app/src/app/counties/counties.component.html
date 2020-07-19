@@ -1,10 +1,11 @@
-<mat-card style="width: 960px;">
+<mat-card style="width: 960px;" *ngIf="!(myEBirdData$ | async)">
     <mat-card-header>
         <mat-card-title>Load eBird Data</mat-card-title>
     </mat-card-header>
     <mat-card-content>
         <div class="form-group">
-            <input type="file" #fileInput>
+            <input #fileInput hidden="true" type="file" onclick="this.value=null" />
+            <button mat-flat-button color="primary" (click)="fileInput.click()">Choose eBird data file</button>
         </div>
     </mat-card-content>
 </mat-card>
