@@ -214,12 +214,24 @@ export class CountiesComponent implements OnInit {
           .attr('stroke', (d) => {
             return '#aaa';
           })
+          .attr('stroke-width', 0.5)
           .datum(topojson.mesh(us, us.objects.states))
           .attr('class', 'states')
           .attr('d', path);
 
         // Draw legend.
         this.drawLegend(maxNumSpecies);
+
+        // Add in zoom capabilities.
+        const zoom = d3
+          .zoom()
+          .scaleExtent([1, 8])
+          .on('zoom', () => {
+            svg
+              .selectAll('path') // To prevent stroke width from scaling
+              .attr('transform', d3.event.transform);
+          });
+        svg.call(zoom);
       }
     );
   }

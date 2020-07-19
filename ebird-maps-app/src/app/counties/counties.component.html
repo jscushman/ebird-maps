@@ -1,11 +1,14 @@
 <mat-card style="width: 960px;">
+    <mat-card-header>
+        <mat-card-title>US County Map</mat-card-title>
+    </mat-card-header>
     <mat-card-content>
         <svg width="100%" height="600"></svg>
     </mat-card-content>
 </mat-card>
 <mat-card style="width: 960px;">
     <mat-card-header>
-        <mat-card-title>Species by County</mat-card-title>
+        <mat-card-title>Species by County (Worldwide)</mat-card-title>
     </mat-card-header>
     <mat-card-content>
         <table mat-table [dataSource]="speciesPerCountyTable$ | async" matSort>
