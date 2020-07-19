@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import {
@@ -9,7 +9,7 @@ import {
   Properties,
 } from 'topojson-specification';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, combineLatest, fromEvent } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -69,50 +69,70 @@ export class Sighting {
   templateUrl: './counties.component.html',
   styleUrls: ['./counties.component.css'],
 })
-export class CountiesComponent implements OnInit {
+export class CountiesComponent implements AfterViewInit {
+  myEBirdData$: Observable<string>;
   speciesPerCounty$: Observable<Map<string, CountySpeciesList>>;
   speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow[]>>;
   countyFipsCodes$: Observable<Map<string, string>>;
   stateAbbreviations$: Observable<Map<string, string>>;
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
+  @ViewChild('fileInput') fileInput: ElementRef;
 
   constructor(private http: HttpClient) {}
 
-  ngOnInit(): void {
-    this.speciesPerCounty$ = this.http
-      .get('assets/MyEBirdData.csv', { responseType: 'text' })
-      .pipe(
-        map((data) => {
-          const speciesPerCounty = new Map<string, CountySpeciesList>();
-          const csvToRowArray: string[] = data.split('\n');
-          for (let index = 1; index < csvToRowArray.length - 1; index++) {
-            const row: string[] = csvToRowArray[index].split(',');
-            const speciesRowName = row[2];
-            if (
-              speciesRowName.includes('sp.') ||
-              speciesRowName.includes(' x ') ||
-              speciesRowName.includes('(Domestic type)')
-            ) {
-              continue;
-            }
-            const speciesName = speciesRowName.split(' ').slice(0, 2).join(' ');
-            if (speciesName.includes('/')) {
-              continue;
-            }
-            const county = row[6];
-            const state = row[5];
-            if (!speciesPerCounty.has(state + county)) {
-              speciesPerCounty.set(
-                state + county,
-                new CountySpeciesList(county, state)
-              );
-            }
-            speciesPerCounty.get(state + county).speciesSet.add(speciesName);
-          }
-          return speciesPerCounty;
+  ngAfterViewInit(): void {
+    console.log(this.fileInput);
+
+    this.myEBirdData$ = fromEvent(this.fileInput.nativeElement, 'change').pipe(
+      (source: Observable<Event>) =>
+        new Observable<string>((observer) => {
+          return source.subscribe((event: Event) => {
+            const file: File = (event.target as HTMLInputElement).files[0];
+            const myReader: FileReader = new FileReader();
+            myReader.onloadend = (e) => {
+              observer.next(myReader.result as string);
+            };
+            myReader.readAsText(file);
+          });
         })
-      );
+    );
+
+    this.speciesPerCounty$ = this.myEBirdData$.pipe(
+      map((data) => {
+        const speciesPerCounty = new Map<string, CountySpeciesList>();
+        const csvToRowArray: string[] = data.split('\n');
+        for (let index = 1; index < csvToRowArray.length - 1; index++) {
+          const row: string[] = csvToRowArray[index].split(',');
+          if (row.length < 7) {
+            // Malformed row. Skip.
+            continue;
+          }
+          const speciesRowName = row[2];
+          if (
+            speciesRowName.includes('sp.') ||
+            speciesRowName.includes(' x ') ||
+            speciesRowName.includes('(Domestic type)')
+          ) {
+            continue;
+          }
+          const speciesName = speciesRowName.split(' ').slice(0, 2).join(' ');
+          if (speciesName.includes('/')) {
+            continue;
+          }
+          const county = row[6];
+          const state = row[5];
+          if (!speciesPerCounty.has(state + county)) {
+            speciesPerCounty.set(
+              state + county,
+              new CountySpeciesList(county, state)
+            );
+          }
+          speciesPerCounty.get(state + county).speciesSet.add(speciesName);
+        }
+        return speciesPerCounty;
+      })
+    );
 
     this.countyFipsCodes$ = this.http.get('assets/fips_codes.json', {
       responseType: 'json',
@@ -125,7 +145,7 @@ export class CountiesComponent implements OnInit {
       }
     ) as Observable<Map<string, string>>;
 
-    this.speciesPerCountyTable$ = forkJoin([
+    this.speciesPerCountyTable$ = combineLatest([
       this.speciesPerCounty$,
       this.stateAbbreviations$,
     ]).pipe(
@@ -152,7 +172,7 @@ export class CountiesComponent implements OnInit {
       })
     );
 
-    forkJoin([this.speciesPerCounty$, this.countyFipsCodes$]).subscribe(
+    combineLatest([this.speciesPerCounty$, this.countyFipsCodes$]).subscribe(
       ([speciesPerCounty, countyFipsCodes]) => {
         // Calculate number of species per county, indexed by FIPS code, and compute the maximum
         // value for the color scale.
@@ -177,6 +197,7 @@ export class CountiesComponent implements OnInit {
           .scaleSequential(d3.interpolateYlOrRd)
           .domain([0, maxNumSpecies]);
         const path = d3.geoPath();
+        d3.selectAll('svg > *').remove();
         const svg = d3.select('svg');
         svg
           .append('g')
