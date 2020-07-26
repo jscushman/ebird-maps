@@ -107,17 +107,20 @@ export class StateSpeciesCount {
 
 export class CountyDisplayRow {
   county: string;
+  countyFips: string;
   state: string;
   country: string;
   speciesCount: number;
 
   constructor(
     county: string,
+    countyFips: string,
     state: string,
     country: string,
     speciesCount: number
   ) {
     this.county = county;
+    this.countyFips = countyFips;
     this.state = state;
     this.country = country;
     this.speciesCount = speciesCount;
@@ -156,8 +159,8 @@ export class Sighting {
 export class CountiesComponent implements AfterViewInit {
   myEBirdData$: Observable<string>;
   speciesLists$: Observable<SpeciesLists>;
-  speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow[]>>;
-  speciesPerStateTable$: Observable<MatTableDataSource<StateDisplayRow[]>>;
+  speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow>>;
+  speciesPerStateTable$: Observable<MatTableDataSource<StateDisplayRow>>;
   countyFipsCodes$: Observable<Map<string, string>>;
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
@@ -166,8 +169,6 @@ export class CountiesComponent implements AfterViewInit {
   constructor(private http: HttpClient) {}
 
   ngAfterViewInit(): void {
-    console.log(this.fileInput);
-
     this.myEBirdData$ = fromEvent(this.fileInput.nativeElement, 'change').pipe(
       (source: Observable<Event>) =>
         new Observable<string>((observer) => {
@@ -228,16 +229,22 @@ export class CountiesComponent implements AfterViewInit {
       responseType: 'json',
     }) as Observable<Map<string, string>>;
 
-    this.speciesPerCountyTable$ = this.speciesLists$.pipe(
-      map((speciesLists) => {
+    this.speciesPerCountyTable$ = combineLatest([
+      this.speciesLists$,
+      this.countyFipsCodes$,
+    ]).pipe(
+      map(([speciesLists, countyFipsCodes]) => {
         const tableEntries = [];
         for (const countySpecies of speciesLists.countyLists.values()) {
           const numSpecies = countySpecies.speciesSet.size;
+          const countyFips =
+            countyFipsCodes[countySpecies.state + countySpecies.county];
           const subdivision = iso3166.subdivision(countySpecies.state);
           if (countySpecies.county !== '') {
             tableEntries.push(
               new CountyDisplayRow(
                 countySpecies.county,
+                countyFips,
                 subdivision ? subdivision.name : countySpecies.state,
                 subdivision ? subdivision.countryName : countySpecies.state,
                 numSpecies
@@ -273,92 +280,86 @@ export class CountiesComponent implements AfterViewInit {
       })
     );
 
-    combineLatest([this.speciesLists$, this.countyFipsCodes$]).subscribe(
-      ([speciesLists, countyFipsCodes]) => {
-        // Calculate number of species per county, indexed by FIPS code, and compute the maximum
-        // value for the color scale.
-        const sightings = new Map<string, CountySpeciesCount>();
-        let maxNumSpecies = 0;
-        for (const [
-          county,
-          countySpecies,
-        ] of speciesLists.countyLists.entries()) {
-          const numSpecies = countySpecies.speciesSet.size;
-          sightings.set(
-            countyFipsCodes[countySpecies.state + countySpecies.county],
-            new CountySpeciesCount(countySpecies.county, numSpecies)
-          );
-          if (numSpecies > maxNumSpecies) {
-            maxNumSpecies = numSpecies;
-          }
+    this.speciesPerCountyTable$.subscribe((speciesPerCountyTable) => {
+      // Calculate number of species per county, indexed by FIPS code, and compute the maximum
+      // value for the color scale.
+      const sightings = new Map<string, CountySpeciesCount>();
+      let maxNumSpecies = 0;
+      speciesPerCountyTable.data.forEach((element) => {
+        console.log(element);
+        const numSpecies = element.speciesCount;
+        sightings.set(
+          element.countyFips,
+          new CountySpeciesCount(element.county, numSpecies)
+        );
+        if (numSpecies > maxNumSpecies) {
+          maxNumSpecies = numSpecies;
         }
+      });
 
-        // Load the US topology.
-        const us: Topology<CountiesData> = require('../../../node_modules/us-atlas/counties-albers-10m.json');
+      // Load the US topology.
+      const us: Topology<CountiesData> = require('../../../node_modules/us-atlas/counties-albers-10m.json');
 
-        // Draw the map. Shade each county by the number of species in the county.
-        const colorScale = d3
-          .scaleSequential(d3.interpolateYlOrRd)
-          .domain([0, maxNumSpecies]);
-        const path = d3.geoPath();
-        d3.selectAll('svg > *').remove();
-        const svg = d3.select('svg');
-        svg
-          .append('g')
-          .attr('class', 'counties')
-          .selectAll('path')
-          .data(topojson.feature(us, us.objects.counties).features)
-          .enter()
-          .append('path')
-          .attr('fill', (d) => {
-            return sightings.has(d.id.toString())
-              ? colorScale(sightings.get(d.id.toString()).speciesCount)
-              : 'none';
-          })
-          .attr('stroke', (d) => {
-            return sightings.has(d.id.toString()) ? 'lightgray' : 'none';
-          })
-          .attr('stroke-width', 0.3)
-          .attr('d', path)
-          .append('title')
-          .text((d) => {
-            const countySpeciesCount = sightings.get(d.id.toString());
-            return sightings.has(d.id.toString())
-              ? countySpeciesCount.county +
-                  ': ' +
-                  countySpeciesCount.speciesCount
-              : '';
-          });
+      // Draw the map. Shade each county by the number of species in the county.
+      const colorScale = d3
+        .scaleSequential(d3.interpolateYlOrRd)
+        .domain([0, maxNumSpecies]);
+      const path = d3.geoPath();
+      d3.selectAll('svg > *').remove();
+      const svg = d3.select('svg');
+      svg
+        .append('g')
+        .attr('class', 'counties')
+        .selectAll('path')
+        .data(topojson.feature(us, us.objects.counties).features)
+        .enter()
+        .append('path')
+        .attr('fill', (d) => {
+          return sightings.has(d.id.toString())
+            ? colorScale(sightings.get(d.id.toString()).speciesCount)
+            : 'none';
+        })
+        .attr('stroke', (d) => {
+          return sightings.has(d.id.toString()) ? 'lightgray' : 'none';
+        })
+        .attr('stroke-width', 0.3)
+        .attr('d', path)
+        .append('title')
+        .text((d) => {
+          const countySpeciesCount = sightings.get(d.id.toString());
+          return sightings.has(d.id.toString())
+            ? countySpeciesCount.county + ': ' + countySpeciesCount.speciesCount
+            : '';
+        });
 
-        // Draw state outlines.
-        svg
-          .append('path')
-          .attr('fill', (d) => {
-            return 'none';
-          })
-          .attr('stroke', (d) => {
-            return '#aaa';
-          })
-          .attr('stroke-width', 0.5)
-          .datum(topojson.mesh(us, us.objects.states))
-          .attr('class', 'states')
-          .attr('d', path);
+      // Draw state outlines.
+      svg
+        .append('path')
+        .attr('fill', (d) => {
+          return 'none';
+        })
+        .attr('stroke', (d) => {
+          return '#aaa';
+        })
+        .attr('stroke-width', 0.5)
+        .datum(topojson.mesh(us, us.objects.states))
+        .attr('class', 'states')
+        .attr('d', path);
 
-        // Draw legend.
-        this.drawLegend(maxNumSpecies);
+      // Draw legend.
+      this.drawLegend(maxNumSpecies);
 
-        // Add in zoom capabilities.
-        const zoom = d3
-          .zoom()
-          .scaleExtent([1, 8])
-          .on('zoom', () => {
-            svg
-              .selectAll('path') // To prevent stroke width from scaling
-              .attr('transform', d3.event.transform);
-          });
-        svg.call(zoom);
-      }
-    );
+      // Add in zoom capabilities.
+      const zoom = d3
+        .zoom()
+        .scaleExtent([1, 8])
+        .on('zoom', () => {
+          svg
+            .selectAll('path') // To prevent stroke width from scaling
+            .attr('transform', d3.event.transform);
+        });
+      svg.call(zoom);
+    });
   }
 
   drawLegend(maxNumSpecies: number) {
