@@ -16,6 +16,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { CountiesComponent } from './counties/counties.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
+import { NgxFileDropModule } from 'ngx-file-drop';
 
 @NgModule({
   declarations: [AppComponent, MapComponent, CountiesComponent],
@@ -34,6 +35,7 @@ import { MatSortModule } from '@angular/material/sort';
     MatToolbarModule,
     MatTableModule,
     MatSortModule,
+    NgxFileDropModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

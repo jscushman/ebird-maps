@@ -2,12 +2,17 @@ import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { HttpClient } from '@angular/common/http';
-import { Observable, combineLatest, fromEvent } from 'rxjs';
+import { Subject, Observable, combineLatest, fromEvent } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import * as iso3166 from 'iso-3166-2';
 import * as GeoJSON from 'geojson';
+import {
+  NgxFileDropEntry,
+  FileSystemFileEntry,
+  FileSystemDirectoryEntry,
+} from 'ngx-file-drop';
 
 // Generic TopoJSON types.
 
@@ -157,31 +162,18 @@ export class Sighting {
   styleUrls: ['./counties.component.css'],
 })
 export class CountiesComponent implements AfterViewInit {
-  myEBirdData$: Observable<string>;
+  myEBirdData$: Subject<string>;
   speciesLists$: Observable<SpeciesLists>;
   speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow>>;
   speciesPerStateTable$: Observable<MatTableDataSource<StateDisplayRow>>;
   countyFipsCodes$: Observable<Map<string, string>>;
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
-  @ViewChild('fileInput') fileInput: ElementRef;
 
   constructor(private http: HttpClient) {}
 
   ngAfterViewInit(): void {
-    this.myEBirdData$ = fromEvent(this.fileInput.nativeElement, 'change').pipe(
-      (source: Observable<Event>) =>
-        new Observable<string>((observer) => {
-          return source.subscribe((event: Event) => {
-            const file: File = (event.target as HTMLInputElement).files[0];
-            const myReader: FileReader = new FileReader();
-            myReader.onloadend = (e) => {
-              observer.next(myReader.result as string);
-            };
-            myReader.readAsText(file);
-          });
-        })
-    );
+    this.myEBirdData$ = new Subject<string>();
 
     this.speciesLists$ = this.myEBirdData$.pipe(
       map((data) => {
@@ -286,7 +278,6 @@ export class CountiesComponent implements AfterViewInit {
       const sightings = new Map<string, CountySpeciesCount>();
       let maxNumSpecies = 0;
       speciesPerCountyTable.data.forEach((element) => {
-        console.log(element);
         const numSpecies = element.speciesCount;
         sightings.set(
           element.countyFips,
@@ -426,5 +417,21 @@ export class CountiesComponent implements AfterViewInit {
       )
       .select('.domain')
       .remove();
+  }
+
+  public onFileDropped(files: NgxFileDropEntry[]) {
+    for (const droppedFile of files) {
+      if (droppedFile.fileEntry.isFile) {
+        const fileEntry = droppedFile.fileEntry as FileSystemFileEntry;
+        fileEntry.file((file: File) => {
+          const myReader: FileReader = new FileReader();
+          myReader.onloadend = (e) => {
+            this.myEBirdData$.next(myReader.result as string);
+          };
+          myReader.readAsText(file);
+        });
+        return;
+      }
+    }
   }
 }
