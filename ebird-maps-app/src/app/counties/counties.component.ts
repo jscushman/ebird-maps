@@ -155,7 +155,7 @@ export class CountiesComponent implements AfterViewInit {
           if (speciesName.includes('/')) {
             continue;
           }
-          const county = row[6];
+          const county = row[6].replace('St.', 'St');
           const state = row[5];
           if (!speciesPerCounty.has(state + county)) {
             speciesPerCounty.set(
