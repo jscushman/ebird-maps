@@ -28,15 +28,42 @@
                 <td mat-cell *matCellDef="let element">{{element.county}}</td>
             </ng-container>
             <ng-container matColumnDef="state">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>State/Province</th>
                 <td mat-cell *matCellDef="let element">{{element.state}}</td>
+            </ng-container>
+            <ng-container matColumnDef="country">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Country</th>
+                <td mat-cell *matCellDef="let element">{{element.country}}</td>
             </ng-container>
             <ng-container matColumnDef="speciesCount">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Species Count</th>
                 <td mat-cell *matCellDef="let element">{{element.speciesCount}}</td>
             </ng-container>
-            <tr mat-header-row *matHeaderRowDef="['county', 'state', 'speciesCount']"></tr>
-            <tr mat-row *matRowDef="let row; columns: ['county', 'state', 'speciesCount'];"></tr>
+            <tr mat-header-row *matHeaderRowDef="['county', 'state', 'country', 'speciesCount']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['county', 'state', 'country', 'speciesCount'];"></tr>
+        </table>
+    </mat-card-content>
+</mat-card>
+<mat-card style="width: 960px;">
+    <mat-card-header>
+        <mat-card-title>Species by State/Province (Worldwide)</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <table mat-table [dataSource]="speciesPerStateTable$ | async" matSort>
+            <ng-container matColumnDef="state">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>State/Province</th>
+                <td mat-cell *matCellDef="let element">{{element.state}}</td>
+            </ng-container>
+            <ng-container matColumnDef="country">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Country</th>
+                <td mat-cell *matCellDef="let element">{{element.country}}</td>
+            </ng-container>
+            <ng-container matColumnDef="speciesCount">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Species Count</th>
+                <td mat-cell *matCellDef="let element">{{element.speciesCount}}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="['state', 'country', 'speciesCount']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['state', 'country', 'speciesCount'];"></tr>
         </table>
     </mat-card-content>
 </mat-card>
