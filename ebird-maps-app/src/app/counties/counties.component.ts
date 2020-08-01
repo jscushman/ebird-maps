@@ -1,14 +1,18 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
-import { HttpClient } from '@angular/common/http';
-import { Subject, Observable, combineLatest, fromEvent } from 'rxjs';
-import { map, share } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
-import * as iso3166 from 'iso-3166-2';
 import * as GeoJSON from 'geojson';
 import { NgxFileDropEntry, FileSystemFileEntry } from 'ngx-file-drop';
+import {
+  CountyDisplayRow,
+  StateDisplayRow,
+  CountySpeciesCount,
+} from '../summary-stats-types';
+import { GetSummaryStatsService } from '../get-summary-stats.service';
+import { map } from 'rxjs/operators';
 
 // Generic TopoJSON types.
 
@@ -54,229 +58,47 @@ export interface CountiesData extends Objects<GeoJSON.GeoJsonProperties> {
   counties: GeometryCollection<GeometryObject<GeoJSON.GeoJsonProperties>>;
 }
 
-export class CountySpeciesList {
-  county: string;
-  state: string;
-  speciesSet: Set<string>;
-
-  constructor(county: string, state: string) {
-    this.county = county;
-    this.state = state;
-    this.speciesSet = new Set<string>();
-  }
-}
-
-export class StateSpeciesList {
-  state: string;
-  speciesSet: Set<string>;
-
-  constructor(state: string) {
-    this.state = state;
-    this.speciesSet = new Set<string>();
-  }
-}
-
-export class SpeciesLists {
-  countyLists: Map<string, CountySpeciesList>;
-  stateLists: Map<string, StateSpeciesList>;
-
-  constructor() {
-    this.countyLists = new Map<string, CountySpeciesList>();
-    this.stateLists = new Map<string, StateSpeciesList>();
-  }
-}
-
-export class CountySpeciesCount {
-  county: string;
-  speciesCount: number;
-
-  constructor(county: string, speciesCount: number) {
-    this.county = county;
-    this.speciesCount = speciesCount;
-  }
-}
-
-export class StateSpeciesCount {
-  state: string;
-  speciesCount: number;
-
-  constructor(state: string, speciesCount: number) {
-    this.state = state;
-    this.speciesCount = speciesCount;
-  }
-}
-
-export class CountyDisplayRow {
-  county: string;
-  countyFips: string;
-  state: string;
-  country: string;
-  speciesCount: number;
-
-  constructor(
-    county: string,
-    countyFips: string,
-    state: string,
-    country: string,
-    speciesCount: number
-  ) {
-    this.county = county;
-    this.countyFips = countyFips;
-    this.state = state;
-    this.country = country;
-    this.speciesCount = speciesCount;
-  }
-}
-
-export class StateDisplayRow {
-  state: string;
-  country: string;
-  speciesCount: number;
-
-  constructor(state: string, country: string, speciesCount: number) {
-    this.state = state;
-    this.country = country;
-    this.speciesCount = speciesCount;
-  }
-}
-
-export class Sighting {
-  scientificName: string;
-  state: string;
-  county: string;
-
-  constructor(scientificName: string, state: string, county: string) {
-    this.scientificName = scientificName;
-    this.state = state;
-    this.county = county;
-  }
-}
-
 @Component({
   selector: 'app-counties',
   templateUrl: './counties.component.html',
   styleUrls: ['./counties.component.css'],
 })
 export class CountiesComponent implements AfterViewInit {
-  myEBirdData$: Subject<string>;
-  speciesLists$: Observable<SpeciesLists>;
-  speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow>>;
-  speciesPerStateTable$: Observable<MatTableDataSource<StateDisplayRow>>;
+  speciesPerCountyDisplayTable$: Observable<
+    MatTableDataSource<CountyDisplayRow>
+  >;
+  speciesPerStateDisplayTable$: Observable<MatTableDataSource<StateDisplayRow>>;
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
 
-  constructor(private http: HttpClient) {}
+  constructor(private getSummaryStats: GetSummaryStatsService) {}
 
   ngAfterViewInit(): void {
-    this.myEBirdData$ = new Subject<string>();
+    const speciesPerCountyTable$ = this.getSummaryStats.getSpeciesPerCountyTable();
+    const speciesPerStateTable$ = this.getSummaryStats.getSpeciesPerStateTable();
 
-    const speciesLists$ = this.myEBirdData$.pipe(
-      map((data) => {
-        const speciesLists = new SpeciesLists();
-        const csvToRowArray: string[] = data.split('\n');
-        for (let index = 1; index < csvToRowArray.length - 1; index++) {
-          const row: string[] = csvToRowArray[index].split(',');
-          if (row.length < 7) {
-            // Malformed row. Skip.
-            continue;
-          }
-          const speciesRowName = row[2];
-          if (
-            speciesRowName.includes('sp.') ||
-            speciesRowName.includes(' x ') ||
-            speciesRowName.includes('(Domestic type)')
-          ) {
-            continue;
-          }
-          const speciesName = speciesRowName.split(' ').slice(0, 2).join(' ');
-          if (speciesName.includes('/')) {
-            continue;
-          }
-          const county = row[6].replace('St.', 'St');
-          const state = row[5];
-          if (!speciesLists.countyLists.has(state + county)) {
-            speciesLists.countyLists.set(
-              state + county,
-              new CountySpeciesList(county, state)
-            );
-          }
-          if (!speciesLists.stateLists.has(state)) {
-            speciesLists.stateLists.set(state, new StateSpeciesList(state));
-          }
-          speciesLists.countyLists
-            .get(state + county)
-            .speciesSet.add(speciesName);
-          speciesLists.stateLists.get(state).speciesSet.add(speciesName);
-        }
-        return speciesLists;
-      })
-    );
-    this.speciesLists$ = speciesLists$.pipe(share());
-
-    const countyFipsCodes$ = this.http.get('assets/fips_codes.json', {
-      responseType: 'json',
-    }) as Observable<Map<string, string>>;
-
-    const speciesPerCountyTable$ = combineLatest([
-      this.speciesLists$,
-      countyFipsCodes$,
-    ]).pipe(
-      map(([speciesLists, countyFipsCodes]) => {
-        console.log(countyFipsCodes);
-        console.log(speciesLists);
-        const tableEntries = [];
-        for (const countySpecies of speciesLists.countyLists.values()) {
-          const numSpecies = countySpecies.speciesSet.size;
-          const countyFips =
-            countyFipsCodes[countySpecies.state + countySpecies.county];
-          const subdivision = iso3166.subdivision(countySpecies.state);
-          if (countySpecies.county !== '') {
-            tableEntries.push(
-              new CountyDisplayRow(
-                countySpecies.county,
-                countyFips,
-                subdivision ? subdivision.name : countySpecies.state,
-                subdivision ? subdivision.countryName : countySpecies.state,
-                numSpecies
-              )
-            );
-          }
-        }
-        tableEntries.sort((a, b) => (a.speciesCount < b.speciesCount ? 1 : -1));
-        const dataSource = new MatTableDataSource(tableEntries);
-        dataSource.sort = this.sort;
-        return dataSource;
-      })
-    );
-    this.speciesPerCountyTable$ = speciesPerCountyTable$.pipe(share());
-
-    this.speciesPerStateTable$ = this.speciesLists$.pipe(
-      map((speciesLists) => {
-        const tableEntries = [];
-        for (const countySpecies of speciesLists.stateLists.values()) {
-          const numSpecies = countySpecies.speciesSet.size;
-          const subdivision = iso3166.subdivision(countySpecies.state);
-          tableEntries.push(
-            new StateDisplayRow(
-              subdivision ? subdivision.name : countySpecies.state,
-              subdivision ? subdivision.countryName : countySpecies.state,
-              numSpecies
-            )
-          );
-        }
-        tableEntries.sort((a, b) => (a.speciesCount < b.speciesCount ? 1 : -1));
-        const dataSource = new MatTableDataSource(tableEntries);
+    this.speciesPerCountyDisplayTable$ = speciesPerCountyTable$.pipe(
+      map((speciesPerCountyTable) => {
+        const dataSource = new MatTableDataSource(speciesPerCountyTable);
         dataSource.sort = this.sort;
         return dataSource;
       })
     );
 
-    this.speciesPerCountyTable$.subscribe((speciesPerCountyTable) => {
+    this.speciesPerStateDisplayTable$ = speciesPerStateTable$.pipe(
+      map((speciesPerStateTable) => {
+        const dataSource = new MatTableDataSource(speciesPerStateTable);
+        dataSource.sort = this.sort;
+        return dataSource;
+      })
+    );
+
+    speciesPerCountyTable$.subscribe((speciesPerCountyTable) => {
       // Calculate number of species per county, indexed by FIPS code, and compute the maximum
       // value for the color scale.
       const sightings = new Map<string, CountySpeciesCount>();
       let maxNumSpecies = 0;
-      speciesPerCountyTable.data.forEach((element) => {
+      speciesPerCountyTable.forEach((element) => {
         const numSpecies = element.speciesCount;
         sightings.set(
           element.countyFips,
@@ -425,7 +247,7 @@ export class CountiesComponent implements AfterViewInit {
         fileEntry.file((file: File) => {
           const myReader: FileReader = new FileReader();
           myReader.onloadend = (e) => {
-            this.myEBirdData$.next(myReader.result as string);
+            this.getSummaryStats.loadFromFile(myReader.result as string);
           };
           myReader.readAsText(file);
         });

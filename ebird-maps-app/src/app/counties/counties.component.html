@@ -1,4 +1,4 @@
-<mat-card style="width: 960px;" *ngIf="!(myEBirdData$ | async)">
+<mat-card style="width: 960px;" *ngIf="!(speciesPerCountyDisplayTable$ | async)">
     <mat-card-header>
         <mat-card-title>Load eBird Data</mat-card-title>
     </mat-card-header>
@@ -23,7 +23,7 @@
         <mat-card-title>Species by County (Worldwide)</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-        <table mat-table [dataSource]="speciesPerCountyTable$ | async" matSort>
+        <table mat-table [dataSource]="speciesPerCountyDisplayTable$ | async" matSort>
             <ng-container matColumnDef="county">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>County</th>
                 <td mat-cell *matCellDef="let element">{{element.county}}</td>
@@ -50,7 +50,7 @@
         <mat-card-title>Species by State/Province (Worldwide)</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-        <table mat-table [dataSource]="speciesPerStateTable$ | async" matSort>
+        <table mat-table [dataSource]="speciesPerStateDisplayTable$ | async" matSort>
             <ng-container matColumnDef="state">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>State/Province</th>
                 <td mat-cell *matCellDef="let element">{{element.state}}</td>
