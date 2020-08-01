@@ -3,16 +3,12 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { HttpClient } from '@angular/common/http';
 import { Subject, Observable, combineLatest, fromEvent } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, share } from 'rxjs/operators';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import * as iso3166 from 'iso-3166-2';
 import * as GeoJSON from 'geojson';
-import {
-  NgxFileDropEntry,
-  FileSystemFileEntry,
-  FileSystemDirectoryEntry,
-} from 'ngx-file-drop';
+import { NgxFileDropEntry, FileSystemFileEntry } from 'ngx-file-drop';
 
 // Generic TopoJSON types.
 
@@ -166,7 +162,6 @@ export class CountiesComponent implements AfterViewInit {
   speciesLists$: Observable<SpeciesLists>;
   speciesPerCountyTable$: Observable<MatTableDataSource<CountyDisplayRow>>;
   speciesPerStateTable$: Observable<MatTableDataSource<StateDisplayRow>>;
-  countyFipsCodes$: Observable<Map<string, string>>;
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
 
@@ -175,7 +170,7 @@ export class CountiesComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.myEBirdData$ = new Subject<string>();
 
-    this.speciesLists$ = this.myEBirdData$.pipe(
+    const speciesLists$ = this.myEBirdData$.pipe(
       map((data) => {
         const speciesLists = new SpeciesLists();
         const csvToRowArray: string[] = data.split('\n');
@@ -216,16 +211,19 @@ export class CountiesComponent implements AfterViewInit {
         return speciesLists;
       })
     );
+    this.speciesLists$ = speciesLists$.pipe(share());
 
-    this.countyFipsCodes$ = this.http.get('assets/fips_codes.json', {
+    const countyFipsCodes$ = this.http.get('assets/fips_codes.json', {
       responseType: 'json',
     }) as Observable<Map<string, string>>;
 
-    this.speciesPerCountyTable$ = combineLatest([
+    const speciesPerCountyTable$ = combineLatest([
       this.speciesLists$,
-      this.countyFipsCodes$,
+      countyFipsCodes$,
     ]).pipe(
       map(([speciesLists, countyFipsCodes]) => {
+        console.log(countyFipsCodes);
+        console.log(speciesLists);
         const tableEntries = [];
         for (const countySpecies of speciesLists.countyLists.values()) {
           const numSpecies = countySpecies.speciesSet.size;
@@ -250,6 +248,7 @@ export class CountiesComponent implements AfterViewInit {
         return dataSource;
       })
     );
+    this.speciesPerCountyTable$ = speciesPerCountyTable$.pipe(share());
 
     this.speciesPerStateTable$ = this.speciesLists$.pipe(
       map((speciesLists) => {
