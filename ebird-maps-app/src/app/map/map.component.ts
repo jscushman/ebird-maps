@@ -1,11 +1,12 @@
-import { environment } from '../../environments/environment';
 import { Component, OnInit } from '@angular/core';
-import { EbirdQueryService } from '../ebird-query.service';
-import * as mapboxgl from 'mapbox-gl';
-import { SightingDetails } from '../ebird-sightings';
 import { DateTime, Duration } from 'luxon';
+import * as mapboxgl from 'mapbox-gl';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+
+import { environment } from '../../environments/environment';
+import { EbirdQueryService } from '../ebird-query.service';
+import { SightingDetails } from '../ebird-sightings';
 
 @Component({
   selector: 'app-map',

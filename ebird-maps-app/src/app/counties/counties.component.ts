@@ -1,18 +1,19 @@
-import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import * as d3 from 'd3';
-import * as topojson from 'topojson-client';
-import { Observable } from 'rxjs';
-import { MatTableDataSource } from '@angular/material/table';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import * as d3 from 'd3';
 import * as GeoJSON from 'geojson';
-import { NgxFileDropEntry, FileSystemFileEntry } from 'ngx-file-drop';
+import { FileSystemFileEntry, NgxFileDropEntry } from 'ngx-file-drop';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import * as topojson from 'topojson-client';
+
+import { GetSummaryStatsService } from '../get-summary-stats.service';
 import {
   CountyDisplayRow,
-  StateDisplayRow,
   CountySpeciesCount,
+  StateDisplayRow,
 } from '../summary-stats-types';
-import { GetSummaryStatsService } from '../get-summary-stats.service';
-import { map } from 'rxjs/operators';
 
 // Generic TopoJSON types.
 

@@ -1,15 +1,16 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Subject, Observable, combineLatest } from 'rxjs';
+import * as iso3166 from 'iso-3166-2';
+import { Observable, Subject, combineLatest } from 'rxjs';
+import { map, share } from 'rxjs/operators';
+
 import {
-  SpeciesLists,
   CountyDisplayRow,
-  StateDisplayRow,
   CountySpeciesList,
+  SpeciesLists,
+  StateDisplayRow,
   StateSpeciesList,
 } from './summary-stats-types';
-import { HttpClient } from '@angular/common/http';
-import { map, share } from 'rxjs/operators';
-import * as iso3166 from 'iso-3166-2';
 
 @Injectable({
   providedIn: 'root',

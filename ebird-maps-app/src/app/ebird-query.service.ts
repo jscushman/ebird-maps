@@ -1,9 +1,11 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { Observation, SightingDetails } from './ebird-sightings';
 import * as mapboxgl from 'mapbox-gl';
+
+import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observation, SightingDetails } from './ebird-sightings';
+
 import { DateTime } from 'luxon';
+import { Injectable } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
