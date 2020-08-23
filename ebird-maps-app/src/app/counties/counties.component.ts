@@ -8,56 +8,17 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as topojson from 'topojson-client';
 
-import { GetSummaryStatsService } from '../get-summary-stats.service';
+import {
+  CountiesData,
+  CountiesTopojsonService,
+  Topology,
+} from '../counties-topojson.service';
 import {
   CountyDisplayRow,
   CountySpeciesCount,
   StateDisplayRow,
-} from '../summary-stats-types';
-
-// Generic TopoJSON types.
-
-export interface TopoJSON {
-  type: 'Topology' | GeoJSON.GeoJsonGeometryTypes | null;
-  bbox?: GeoJSON.BBox;
-}
-
-export interface Topology<
-  T extends Objects<GeoJSON.GeoJsonProperties> = Objects<
-    GeoJSON.GeoJsonProperties
-  >
-> extends TopoJSON {
-  type: 'Topology';
-  objects: T;
-  arcs: number[][][];
-}
-
-export interface Objects<P extends GeoJSON.GeoJsonProperties = {}> {
-  [key: string]: GeometryObject<P>;
-}
-
-export interface GeometryObjectA<P extends GeoJSON.GeoJsonProperties = {}>
-  extends TopoJSON {
-  type: GeoJSON.GeoJsonGeometryTypes | null;
-  id?: number | string;
-  properties?: P;
-}
-
-export type GeometryObject<
-  P extends GeoJSON.GeoJsonProperties = {}
-> = GeometryCollection<P>;
-
-export interface GeometryCollection<P extends GeoJSON.GeoJsonProperties = {}>
-  extends GeometryObjectA<P> {
-  type: 'GeometryCollection';
-  geometries: Array<GeometryObject<P>>;
-}
-
-// Specific types for this county map.
-
-export interface CountiesData extends Objects<GeoJSON.GeoJsonProperties> {
-  counties: GeometryCollection<GeometryObject<GeoJSON.GeoJsonProperties>>;
-}
+  SummaryStatsService,
+} from '../summary-stats.service';
 
 @Component({
   selector: 'app-counties',
@@ -72,11 +33,14 @@ export class CountiesComponent implements AfterViewInit {
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
 
-  constructor(private getSummaryStats: GetSummaryStatsService) {}
+  constructor(
+    private summaryStatsService: SummaryStatsService,
+    private countiesTopojsonService: CountiesTopojsonService
+  ) {}
 
   ngAfterViewInit(): void {
-    const speciesPerCountyTable$ = this.getSummaryStats.getSpeciesPerCountyTable();
-    const speciesPerStateTable$ = this.getSummaryStats.getSpeciesPerStateTable();
+    const speciesPerCountyTable$ = this.summaryStatsService.getSpeciesPerCountyTable();
+    const speciesPerStateTable$ = this.summaryStatsService.getSpeciesPerStateTable();
 
     this.speciesPerCountyDisplayTable$ = speciesPerCountyTable$.pipe(
       map((speciesPerCountyTable) => {
@@ -111,7 +75,7 @@ export class CountiesComponent implements AfterViewInit {
       });
 
       // Load the US topology.
-      const us: Topology<CountiesData> = require('../../../node_modules/us-atlas/counties-albers-10m.json');
+      const us: Topology<CountiesData> = this.countiesTopojsonService.getUsCountiesTopojson();
 
       // Draw the map. Shade each county by the number of species in the county.
       const colorScale = d3
@@ -248,7 +212,7 @@ export class CountiesComponent implements AfterViewInit {
         fileEntry.file((file: File) => {
           const myReader: FileReader = new FileReader();
           myReader.onloadend = (e) => {
-            this.getSummaryStats.loadFromFile(myReader.result as string);
+            this.summaryStatsService.loadFromFile(myReader.result as string);
           };
           myReader.readAsText(file);
         });
