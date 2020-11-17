@@ -1,8 +1,8 @@
 os: linux
 language: node_js
 node_js:
-  - "14"
-dist: trusty
+  - 14
+dist: focal
 
 before_script:
   - npm install -g @angular/cli
