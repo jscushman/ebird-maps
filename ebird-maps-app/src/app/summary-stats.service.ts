@@ -152,7 +152,7 @@ export class SummaryStatsService {
         return tableEntries;
       })
     );
-    this.speciesPerStateTable$ = speciesPerCountyTable$.pipe(share());
+    this.speciesPerStateTable$ = speciesPerStateTable$.pipe(share());
   }
 
   loadFromFile(fileContents: string) {

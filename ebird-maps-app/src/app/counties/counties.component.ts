@@ -31,7 +31,8 @@ export class CountiesComponent implements AfterViewInit {
   >;
   speciesPerStateDisplayTable$: Observable<MatTableDataSource<StateDisplayRow>>;
 
-  @ViewChild(MatSort, { static: true }) sort: MatSort;
+  @ViewChild('countySort') countySort: MatSort;
+  @ViewChild('stateSort') stateSort: MatSort;
 
   constructor(
     private summaryStatsService: SummaryStatsService,
@@ -45,7 +46,7 @@ export class CountiesComponent implements AfterViewInit {
     this.speciesPerCountyDisplayTable$ = speciesPerCountyTable$.pipe(
       map((speciesPerCountyTable) => {
         const dataSource = new MatTableDataSource(speciesPerCountyTable);
-        dataSource.sort = this.sort;
+        dataSource.sort = this.countySort;
         return dataSource;
       })
     );
@@ -53,7 +54,7 @@ export class CountiesComponent implements AfterViewInit {
     this.speciesPerStateDisplayTable$ = speciesPerStateTable$.pipe(
       map((speciesPerStateTable) => {
         const dataSource = new MatTableDataSource(speciesPerStateTable);
-        dataSource.sort = this.sort;
+        dataSource.sort = this.stateSort;
         return dataSource;
       })
     );
