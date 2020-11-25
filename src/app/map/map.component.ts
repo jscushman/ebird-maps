@@ -30,7 +30,7 @@ export class MapComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.apiKeyService.getApiKey('mapbox-dev').subscribe((accessToken) => {
+    this.apiKeyService.getApiKey('mapbox').subscribe((accessToken) => {
       this.accessToken = accessToken;
     });
     if (navigator.geolocation) {
