@@ -4,7 +4,7 @@ import * as mapboxgl from 'mapbox-gl';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { environment } from '../../environments/environment';
+import { ApiKeyService } from '../api-key.service';
 import { EbirdQueryService } from '../ebird-query.service';
 import { SightingDetails } from '../ebird-sightings';
 
@@ -17,16 +17,22 @@ export class MapComponent implements OnInit {
   map: mapboxgl.Map;
   days = 4;
   distanceRadius = 100;
-  accessToken = environment.mapbox.accessToken;
+  accessToken: string;
   ebirdSightings$: Observable<GeoJSON.FeatureCollection<GeoJSON.Geometry>>;
   geometry: GeoJSON.Feature<GeoJSON.Polygon>;
   selectedPoint: mapboxgl.MapboxGeoJSONFeature;
   home: mapboxgl.LngLat;
   loaded = false;
 
-  constructor(private ebirdQuery: EbirdQueryService) {}
+  constructor(
+    private ebirdQuery: EbirdQueryService,
+    private apiKeyService: ApiKeyService
+  ) {}
 
   ngOnInit() {
+    this.apiKeyService.getApiKey('mapbox-dev').subscribe((accessToken) => {
+      this.accessToken = accessToken;
+    });
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {

@@ -1,7 +1,7 @@
 <mat-card>
     <mat-card-content style="height: 100%">
         <p *ngIf="!home">Getting your location...</p>
-        <mgl-map *ngIf="home" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home"
+        <mgl-map *ngIf="home && accessToken" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home"
             [accessToken]=accessToken (load)="onMapLoad($event)">
             <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
             </mgl-control>
