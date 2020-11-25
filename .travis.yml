@@ -1,12 +1,14 @@
 os: linux
 language: node_js
 node_js:
-  - 14
+- 14
 dist: focal
-
 before_script:
-  - npm install -g @angular/cli
-
+- npm install -g @angular/cli
 script:
-  - ng lint
-  - ng build --prod
+- ng lint
+- ng build --prod
+deploy:
+  edge: true
+  provider: s3
+  local_dir: dist/ebird-maps-app
