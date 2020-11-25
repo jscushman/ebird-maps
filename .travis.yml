@@ -4,6 +4,7 @@ node_js:
 - 14
 dist: focal
 before_script:
+- npm install -g travis-ci-cloudfront-invalidation
 - npm install -g @angular/cli
 script:
 - ng lint
@@ -12,3 +13,5 @@ deploy:
   edge: true
   provider: s3
   local_dir: dist/ebird-maps-app
+after_deploy:
+- travis-ci-cloudfront-invalidation -a $AWS_ACCESS_KEY_ID -s $AWS_SECRET_ACCESS_KEY -c $AWS_CLOUDFRONT_DIST_ID -i '/index.html' -b $TRAVIS_BRANCH -p $TRAVIS_PULL_REQUEST
