@@ -176,7 +176,7 @@ export class SummaryStatsService {
       if (speciesName.includes('/')) {
         continue;
       }
-      const county = row[6].replace('St.', 'St');
+      const county = row[6];
       const state = row[5];
       if (!speciesLists.countyLists.has(state + county)) {
         speciesLists.countyLists.set(
