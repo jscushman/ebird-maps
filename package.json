@@ -34,7 +34,7 @@
     "mapbox-gl": "^2.0.1",
     "material-design-icons": "^3.0.1",
     "ngx-file-drop": "^10.1.1",
-    "ngx-mapbox-gl": "^6.0.4",
+    "ngx-mapbox-gl": "^7.1.2",
     "rxjs": "^6.5.3",
     "topojson-client": "^3.1.0",
     "tslib": "^2.0.0",
