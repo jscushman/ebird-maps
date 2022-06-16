@@ -3,8 +3,8 @@
         <p *ngIf="!home">Getting your location...</p>
         <mgl-map *ngIf="home && accessToken" [style]="'mapbox://styles/mapbox/light-v9'" [zoom]="[8]" [center]="home"
             [accessToken]=accessToken (load)="onMapLoad($event)">
-            <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
-            </mgl-control>
+            <!-- <mgl-control mglGeocoder [accessToken]=accessToken [flyTo]=false (result)="onGeocodingResult($event);">
+            </mgl-control> -->
             <mgl-control>
                 <span>{{getDisplayDays(days)}} </span>
                 <mat-slider min="0" max="7" step="1" [value]="days" (input)="days = $event.value; onDaysUpdate();">
