@@ -6,6 +6,8 @@ dist: focal
 before_script:
 - npm install -g travis-ci-cloudfront-invalidation
 - npm install -g @angular/cli
+install:
+- travis_wait 15 npm ci
 script:
 - ng lint
 - ng build --prod
