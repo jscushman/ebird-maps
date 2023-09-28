@@ -189,8 +189,14 @@ export class MapComponent implements OnInit {
           string,
           SpeciesDetails
         >();
-        let description: string = '<h2>' + sightings[0].obs.locName + '</h2>';
-        const sightingsLength = sightings.length;
+        const firstObs = sightings[0].obs;
+        let description: string;
+        if (firstObs.locationPrivate) {
+          description = `<h2>${sightings[0].obs.locName}</h2>`;
+        } else {
+          description = `<h2><a href="https://ebird.org/hotspot/${sightings[0].obs.locId}" target="_blank">${sightings[0].obs.locName}</a></h2>`;
+        }
+        description = description + `<h3>${sightings[0].obs.subnational2Name}, ${sightings[0].obs.subnational1Name}</h3>`;
         sightings = sightings.filter(
           (sighting: SightingDetails, index: number, self: SightingDetails[]) =>
             index ===

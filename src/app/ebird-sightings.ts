@@ -11,10 +11,14 @@ export interface Observation {
   lng: number;
   lat: number;
   subId: string;
+  subnational1Name: string;
+  subnational1Code: string;
+  subnational2Name: string;
   subnational2Code: string;
   userDisplayName?: string;
   obsReviewed?: boolean;
   hasRichMedia?: boolean;
+  locationPrivate: boolean;
 }
 
 export interface SightingDetails {
